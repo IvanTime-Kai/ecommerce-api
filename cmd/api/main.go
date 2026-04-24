@@ -7,6 +7,9 @@ import (
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/config"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/db"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/handler"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -30,9 +33,11 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("root."))
-	})
+	q := repository.New(pool)
+	userService := service.NewUserService(q, pool)
+	userHandler := handler.NewUserHandler(userService)
+
+	r.Post("/v1/users/register", userHandler.Register)
 
 	log.Printf("Server running on port %s", cfg.Server.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.Server.Port), r))
