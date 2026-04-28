@@ -3,6 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/Ivantime-Kai/ecommerce-api/internal/middleware"
+	"github.com/google/uuid"
 )
 
 func writeJSON(w http.ResponseWriter, status int, data any) {
@@ -18,4 +21,21 @@ func writeError(w http.ResponseWriter, status int, code string, msg string) {
 			"message": msg,
 		},
 	})
+}
+
+func getUserIDFromContext(r *http.Request) (uuid.UUID, bool) {
+	userIDStr, ok := r.Context().Value(middleware.UserIDKey).(string)
+
+	if !ok {
+		return uuid.Nil, false
+
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+
+	if err != nil {
+		return uuid.Nil, false
+	}
+
+	return userID, true
 }

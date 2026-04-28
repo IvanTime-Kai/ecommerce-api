@@ -7,14 +7,27 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	CheckUserEmailExists(ctx context.Context, email pgtype.Text) (bool, error)
+	CheckUserEnabledMFA(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckUserPhoneExists(ctx context.Context, phone pgtype.Text) (bool, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAuth(ctx context.Context, arg CreateUserAuthParams) (UserAuth, error)
+	CreateUserMFA(ctx context.Context, arg CreateUserMFAParams) (UserMfa, error)
+	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) (AuthSession, error)
+	DeleteSessionByRefreshToken(ctx context.Context, refreshTokenHash string) error
+	EnableUserMFA(ctx context.Context, userID uuid.UUID) error
+	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
+	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByPhone(ctx context.Context, phone pgtype.Text) (User, error)
+	GetUserMFAByUserID(ctx context.Context, userID uuid.UUID) (UserMfa, error)
+	GetUserPasswordHash(ctx context.Context, arg GetUserPasswordHashParams) (pgtype.Text, error)
+	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
 }
 
 var _ Querier = (*Queries)(nil)

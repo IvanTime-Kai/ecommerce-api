@@ -8,10 +8,11 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/config"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/db"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/handler"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/middleware"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	middlewareChi "github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -30,14 +31,26 @@ func main() {
 	defer pool.Close()
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(middlewareChi.Logger)
+	r.Use(middlewareChi.Recoverer)
 
 	q := repository.New(pool)
-	userService := service.NewUserService(q, pool)
+	userService := service.NewUserService(q, pool, &cfg.JWT)
 	userHandler := handler.NewUserHandler(userService)
 
-	r.Post("/v1/users/register", userHandler.Register)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Post("/auth/logout", userHandler.Logout)
+		r.Post("/auth/register", userHandler.Register)
+		r.Post("/auth/login", userHandler.Login)
+		r.Post("/auth/refresh-token", userHandler.RefreshToken)
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware(cfg.JWT.ApiSecret))
+			r.Get("/user/profile", userHandler.GetProfile)
+			r.Post("/user/mfa/enable", userHandler.EnableMFA)
+			r.Post("/user/mfa/verify", userHandler.VerifyMFA)
+		})
+	})
 
 	log.Printf("Server running on port %s", cfg.Server.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.Server.Port), r))

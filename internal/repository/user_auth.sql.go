@@ -40,3 +40,24 @@ func (q *Queries) CreateUserAuth(ctx context.Context, arg CreateUserAuthParams) 
 	)
 	return i, err
 }
+
+const getUserPasswordHash = `-- name: GetUserPasswordHash :one
+SELECT
+  password_hash
+FROM
+  user_auth
+WHERE
+  user_id = $1 AND provider = $2
+`
+
+type GetUserPasswordHashParams struct {
+	UserID   uuid.UUID    `json:"user_id"`
+	Provider ProviderType `json:"provider"`
+}
+
+func (q *Queries) GetUserPasswordHash(ctx context.Context, arg GetUserPasswordHashParams) (pgtype.Text, error) {
+	row := q.db.QueryRow(ctx, getUserPasswordHash, arg.UserID, arg.Provider)
+	var password_hash pgtype.Text
+	err := row.Scan(&password_hash)
+	return password_hash, err
+}
