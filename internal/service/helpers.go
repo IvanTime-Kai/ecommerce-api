@@ -1,6 +1,11 @@
 package service
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"golang.org/x/crypto/bcrypt"
@@ -25,4 +30,11 @@ func hashPassword(password string) (string, error) {
 	}
 
 	return string(bytes), nil
+}
+
+func generateSlug(name string) string {
+	lowerName := strings.ToLower(name)
+	slug := strings.ReplaceAll(lowerName, " ", "-")
+	slug = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(slug, "")
+	return fmt.Sprintf("%s-%s", slug, uuid.New().String()[:8])
 }

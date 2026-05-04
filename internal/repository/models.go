@@ -97,6 +97,49 @@ func (ns NullProviderType) Value() (driver.Value, error) {
 	return string(ns.ProviderType), nil
 }
 
+type ShopStatus string
+
+const (
+	ShopStatusActive    ShopStatus = "active"
+	ShopStatusSuspended ShopStatus = "suspended"
+	ShopStatusClosed    ShopStatus = "closed"
+)
+
+func (e *ShopStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ShopStatus(s)
+	case string:
+		*e = ShopStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ShopStatus: %T", src)
+	}
+	return nil
+}
+
+type NullShopStatus struct {
+	ShopStatus ShopStatus `json:"shop_status"`
+	Valid      bool       `json:"valid"` // Valid is true if ShopStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullShopStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ShopStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ShopStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullShopStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ShopStatus), nil
+}
+
 type UserStatus string
 
 const (
@@ -151,6 +194,18 @@ type AuthSession struct {
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type Shop struct {
+	ID          uuid.UUID          `json:"id"`
+	OwnerID     uuid.UUID          `json:"owner_id"`
+	Name        string             `json:"name"`
+	Slug        string             `json:"slug"`
+	Description pgtype.Text        `json:"description"`
+	LogoUrl     pgtype.Text        `json:"logo_url"`
+	Status      ShopStatus         `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {

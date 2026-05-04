@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS shops;
+
+DROP TYPE IF EXISTS shop_status;

@@ -38,7 +38,11 @@ func main() {
 	userService := service.NewUserService(q, pool, &cfg.JWT)
 	userHandler := handler.NewUserHandler(userService)
 
+	shopService := service.NewShopService(q)
+	shopHandler := handler.NewShopHandler(shopService)
+
 	r.Route("/api/v1", func(r chi.Router) {
+		// AUTH
 		r.Post("/auth/logout", userHandler.Logout)
 		r.Post("/auth/register", userHandler.Register)
 		r.Post("/auth/login", userHandler.Login)
@@ -46,9 +50,16 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(cfg.JWT.ApiSecret))
+
+			// USER
 			r.Get("/user/profile", userHandler.GetProfile)
 			r.Post("/user/mfa/enable", userHandler.EnableMFA)
 			r.Post("/user/mfa/verify", userHandler.VerifyMFA)
+
+			// SHOP
+			r.Post("/shop", shopHandler.CreateShop)
+			r.Get("/shop/me", shopHandler.GetMyShop)
+			r.Get("/shop/{id}", shopHandler.GetShopByID)
 		})
 	})
 
