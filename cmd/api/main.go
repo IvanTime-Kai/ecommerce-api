@@ -41,6 +41,9 @@ func main() {
 	shopService := service.NewShopService(q)
 	shopHandler := handler.NewShopHandler(shopService)
 
+	productService := service.NewProductService(q)
+	productHandler := handler.NewProductHandler(productService)
+
 	r.Route("/api/v1", func(r chi.Router) {
 		// AUTH
 		r.Post("/auth/logout", userHandler.Logout)
@@ -57,9 +60,17 @@ func main() {
 			r.Post("/user/mfa/verify", userHandler.VerifyMFA)
 
 			// SHOP
-			r.Post("/shop", shopHandler.CreateShop)
-			r.Get("/shop/me", shopHandler.GetMyShop)
-			r.Get("/shop/{id}", shopHandler.GetShopByID)
+			r.Post("/shops", shopHandler.CreateShop)
+			r.Get("/shops/me", shopHandler.GetMyShop)
+			r.Get("/shops/{id}", shopHandler.GetShopByID)
+
+			// PRODUCT
+			r.Post("/products", productHandler.CreateProduct)
+			r.Get("/products/{id}", productHandler.GetProductByID)
+			r.Get("/shops/{id}/products", productHandler.GetProductsByShopID)
+			r.Put("/products/{id}", productHandler.UpdateProduct)
+			r.Delete("/products/{id}", productHandler.DeleteProduct)
+
 		})
 	})
 

@@ -15,14 +15,19 @@ type Querier interface {
 	CheckUserEmailExists(ctx context.Context, email pgtype.Text) (bool, error)
 	CheckUserEnabledMFA(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckUserPhoneExists(ctx context.Context, phone pgtype.Text) (bool, error)
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateShop(ctx context.Context, arg CreateShopParams) (Shop, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAuth(ctx context.Context, arg CreateUserAuthParams) (UserAuth, error)
 	CreateUserMFA(ctx context.Context, arg CreateUserMFAParams) (UserMfa, error)
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) (AuthSession, error)
+	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteSessionByRefreshToken(ctx context.Context, refreshTokenHash string) error
 	EnableUserMFA(ctx context.Context, userID uuid.UUID) error
 	GeShopByID(ctx context.Context, id uuid.UUID) (Shop, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
+	GetProductByIDAndShopOwner(ctx context.Context, arg GetProductByIDAndShopOwnerParams) (Product, error)
+	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)
 	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
 	GetShopByOwnerID(ctx context.Context, ownerID uuid.UUID) (Shop, error)
 	GetShopBySlug(ctx context.Context, slug string) (Shop, error)
@@ -32,6 +37,7 @@ type Querier interface {
 	GetUserMFAByUserID(ctx context.Context, userID uuid.UUID) (UserMfa, error)
 	GetUserPasswordHash(ctx context.Context, arg GetUserPasswordHashParams) (pgtype.Text, error)
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 }
 
