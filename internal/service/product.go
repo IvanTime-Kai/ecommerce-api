@@ -66,12 +66,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, req CreateProductPar
 	return &product, nil
 }
 
-func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (*repository.Product, error) {
-	return s.GetProductByID(ctx, id)
+func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (repository.Product, error) {
+	return s.repository.GetProductByID(ctx, id)
 }
 
 func (s *ProductService) GetProductsByShopID(ctx context.Context, id uuid.UUID) ([]repository.Product, error) {
-	return s.GetProductsByShopID(ctx, id)
+	return s.repository.GetProductsByShopID(ctx, id)
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, req UpdateProductParams) (*repository.Product, error) {
