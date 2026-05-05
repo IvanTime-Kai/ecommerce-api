@@ -18,6 +18,8 @@ type CreateProductParams struct {
 	UserID      uuid.UUID
 	Name        string
 	Description *string
+	Price       float64
+	Stock       int32
 }
 
 type UpdateProductParams struct {
@@ -57,6 +59,8 @@ func (s *ProductService) CreateProduct(ctx context.Context, req CreateProductPar
 		ShopID:      shop.ID,
 		Name:        req.Name,
 		Description: toNullString(req.Description),
+		Price:       floatToNumeric(req.Price),
+		Stock:       req.Stock,
 	})
 
 	if err != nil {

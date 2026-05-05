@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
@@ -26,11 +27,11 @@ type OrderItemInput struct {
 type CreateOrderRequest struct {
 	ShopID           uuid.UUID        `json:"shop_id"`
 	ShippingFullName string           `json:"shipping_full_name"`
-	ShippingPhone    string           `json:"shipping_full_phone"`
-	ShippingProvince string           `json:"shipping_full_province"`
-	ShippingDistrict string           `json:"shipping_full_district"`
-	ShippingWard     string           `json:"shipping_full_ward"`
-	ShippingStreet   string           `json:"shipping_full_street"`
+	ShippingPhone    string           `json:"shipping_phone"`
+	ShippingProvince string           `json:"shipping_province"`
+	ShippingDistrict string           `json:"shipping_district"`
+	ShippingWard     string           `json:"shipping_ward"`
+	ShippingStreet   string           `json:"shipping_street"`
 	Items            []OrderItemInput `json:"items"`
 }
 
@@ -70,6 +71,21 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
+		if errors.Is(err, service.ErrEmptyItems) {
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+			return
+		}
+
+		if errors.Is(err, service.ErrInvalidProducts) {
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+			return
+		}
+
+		if errors.Is(err, service.ErrOutOfStock) {
+			writeError(w, http.StatusConflict, "OUT_OF_STOCK", err.Error())
+			return
+		}
+
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}

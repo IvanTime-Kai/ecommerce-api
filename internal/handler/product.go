@@ -23,6 +23,8 @@ func NewProductHandler(service *service.ProductService) *ProductHandler {
 type CreateProductRequest struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description"`
+	Price       float64 `json:"price"`
+	Stock       int32   `json:"stock"`
 }
 
 type UpdateProductRequest struct {
@@ -50,6 +52,8 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		UserID:      userID,
 		Name:        req.Name,
 		Description: req.Description,
+		Price:       req.Price,
+		Stock:       req.Stock,
 	})
 
 	if err != nil {

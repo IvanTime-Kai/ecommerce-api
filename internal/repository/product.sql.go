@@ -14,16 +14,18 @@ import (
 
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO
-  products (id, shop_id, name, description)
+  products (id, shop_id, name, description, price, stock)
 VALUES
-  ($1, $2, $3, $4) RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price
+  ($1, $2, $3, $4, $5, $6) RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price
 `
 
 type CreateProductParams struct {
-	ID          uuid.UUID   `json:"id"`
-	ShopID      uuid.UUID   `json:"shop_id"`
-	Name        string      `json:"name"`
-	Description pgtype.Text `json:"description"`
+	ID          uuid.UUID      `json:"id"`
+	ShopID      uuid.UUID      `json:"shop_id"`
+	Name        string         `json:"name"`
+	Description pgtype.Text    `json:"description"`
+	Price       pgtype.Numeric `json:"price"`
+	Stock       int32          `json:"stock"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -32,6 +34,8 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		arg.ShopID,
 		arg.Name,
 		arg.Description,
+		arg.Price,
+		arg.Stock,
 	)
 	var i Product
 	err := row.Scan(

@@ -11,6 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var ErrEmptyItems = fmt.Errorf("items cannot be empty")
+var ErrInvalidProducts = fmt.Errorf("one or more products are invalid")
+var ErrOutOfStock = fmt.Errorf("out of stock")
+
 type OrderService struct {
 	repository repository.Querier
 	db         *pgxpool.Pool
@@ -45,7 +49,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	itemsLength := len(req.Items)
 
 	if itemsLength == 0 {
-		return nil, fmt.Errorf("")
+		return nil, ErrEmptyItems
 	}
 
 	tx, err := s.db.Begin(ctx)
@@ -73,7 +77,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	}
 
 	if len(products) != len(req.Items) {
-		return nil, fmt.Errorf("one or more products are invalid")
+		return nil, ErrInvalidProducts
 	}
 
 	productMap := make(map[uuid.UUID]repository.GetProductsForOrderRow, len(products))
@@ -138,7 +142,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		})
 
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("product %s is out of stock", product.ID)
+			return nil, fmt.Errorf("%w: product %s", ErrOutOfStock, product.ID)
 		}
 
 		if err != nil {

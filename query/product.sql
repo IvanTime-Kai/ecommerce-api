@@ -1,8 +1,8 @@
 -- name: CreateProduct :one
 INSERT INTO
-  products (id, shop_id, name, description)
+  products (id, shop_id, name, description, price, stock)
 VALUES
-  ($1, $2, $3, $4) RETURNING *;
+  ($1, $2, $3, $4, $5, $6) RETURNING *;
 
 -- name: GetProductByID :one
 SELECT
