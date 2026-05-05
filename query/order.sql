@@ -71,3 +71,19 @@ SET
   updated_at = NOW()
 WHERE
   id = $1 RETURNING *;
+
+-- name: ConfirmOrder :one
+UPDATE orders SET status = 'confirmed', updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: ShipOrder :one
+UPDATE orders SET status = 'shipping', updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: DeliverOrder :one
+UPDATE orders SET status = 'delivered', updated_at = NOW()
+WHERE id = $1 RETURNING *;
+
+-- name: CancelOrder :one
+UPDATE orders SET status = 'cancelled', updated_at = NOW()
+WHERE id = $1 RETURNING *;

@@ -14,6 +14,7 @@ import (
 var ErrEmptyItems = fmt.Errorf("items cannot be empty")
 var ErrInvalidProducts = fmt.Errorf("one or more products are invalid")
 var ErrOutOfStock = fmt.Errorf("out of stock")
+var ErrInvalidTransition = fmt.Errorf("invalid order transition")
 
 type OrderService struct {
 	repository repository.Querier
@@ -35,6 +36,11 @@ type CreateOrderParams struct {
 	ShippingWard     string
 	ShippingStreet   string
 	Items            []OrderItemInput
+}
+
+type OrderActionParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
 }
 
 func NewOrderService(repository repository.Querier, db *pgxpool.Pool) *OrderService {
@@ -152,6 +158,133 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (s *OrderService) GetOrdersByUserID(ctx context.Context, id uuid.UUID) ([]repository.Order, error) {
+	return s.repository.GetOrdersByUserID(ctx, id)
+}
+
+func (s *OrderService) GetOrdersByShopID(ctx context.Context, userID uuid.UUID) ([]repository.Order, error) {
+	shop, err := s.repository.GetShopByOwnerID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.repository.GetOrdersByShopID(ctx, shop.ID)
+}
+
+func (s *OrderService) ConfirmOrder(ctx context.Context, req OrderActionParams) (*repository.Order, error) {
+	order, err := s.repository.GetOrderByID(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	shop, err := s.repository.GetShopByOwnerID(ctx, req.UserID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if order.ShopID != shop.ID {
+		return nil, fmt.Errorf("forbidden")
+	}
+
+	if order.Status != repository.OrderStatusPending {
+		return nil, fmt.Errorf("%w: order is not in shipping status", ErrInvalidTransition)
+	}
+
+	order, err = s.repository.ConfirmOrder(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (s *OrderService) ShipOrder(ctx context.Context, req OrderActionParams) (*repository.Order, error) {
+	order, err := s.repository.GetOrderByID(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	shop, err := s.repository.GetShopByOwnerID(ctx, req.UserID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if order.ShopID != shop.ID {
+		return nil, fmt.Errorf("forbidden")
+	}
+
+	if order.Status != repository.OrderStatusConfirmed {
+		return nil, fmt.Errorf("%w: order is not in shipping status", ErrInvalidTransition)
+	}
+
+	order, err = s.repository.ShipOrder(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (s *OrderService) DeliverOrder(ctx context.Context, req OrderActionParams) (*repository.Order, error) {
+	order, err := s.repository.GetOrderByID(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	shop, err := s.repository.GetShopByOwnerID(ctx, req.UserID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if order.ShopID != shop.ID {
+		return nil, fmt.Errorf("forbidden")
+	}
+
+	if order.Status != repository.OrderStatusShipping {
+		return nil, fmt.Errorf("%w: order is not in shipping status", ErrInvalidTransition)
+	}
+
+	order, err = s.repository.DeliverOrder(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func (s *OrderService) CancelOrder(ctx context.Context, req OrderActionParams) (*repository.Order, error) {
+
+	order, err := s.repository.GetOrderByID(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if order.UserID != req.UserID {
+		return nil, fmt.Errorf("forbidden")
+	}
+
+	if order.Status != repository.OrderStatusPending && order.Status != repository.OrderStatusConfirmed {
+		return nil, fmt.Errorf("order cannot be cancelled status")
+	}
+
+	order, err = s.repository.CancelOrder(ctx, req.ID)
+
+	if err != nil {
 		return nil, err
 	}
 

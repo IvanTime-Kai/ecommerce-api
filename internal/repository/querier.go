@@ -12,9 +12,11 @@ import (
 )
 
 type Querier interface {
+	CancelOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	CheckUserEmailExists(ctx context.Context, email pgtype.Text) (bool, error)
 	CheckUserEnabledMFA(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckUserPhoneExists(ctx context.Context, phone pgtype.Text) (bool, error)
+	ConfirmOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	CreateAddress(ctx context.Context, arg CreateAddressParams) (Address, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
@@ -28,6 +30,7 @@ type Querier interface {
 	DeleteAddress(ctx context.Context, id uuid.UUID) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteSessionByRefreshToken(ctx context.Context, refreshTokenHash string) error
+	DeliverOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	EnableUserMFA(ctx context.Context, userID uuid.UUID) error
 	GeShopByID(ctx context.Context, id uuid.UUID) (Shop, error)
 	GetAddressByID(ctx context.Context, id uuid.UUID) (Address, error)
@@ -49,6 +52,7 @@ type Querier interface {
 	GetUserPasswordHash(ctx context.Context, arg GetUserPasswordHashParams) (pgtype.Text, error)
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
 	SetDefaultAddress(ctx context.Context, userID uuid.UUID) error
+	ShipOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	UpdateAddressDefault(ctx context.Context, id uuid.UUID) error
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)

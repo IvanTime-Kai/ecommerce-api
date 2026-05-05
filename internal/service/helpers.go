@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
@@ -49,4 +50,20 @@ func floatToNumeric(f float64) pgtype.Numeric {
 	var n pgtype.Numeric
 	n.Scan(strconv.FormatFloat(f, 'f', 2, 64))
 	return n
+}
+
+func isValidTransition(current, next repository.OrderStatus) bool {
+	allowed := map[repository.OrderStatus][]repository.OrderStatus{
+		repository.OrderStatusPending:   {repository.OrderStatusConfirmed, repository.OrderStatusCancelled},
+		repository.OrderStatusConfirmed: {repository.OrderStatusShipping, repository.OrderStatusCancelled},
+		repository.OrderStatusShipping:  {repository.OrderStatusDelivered},
+		repository.OrderStatusDelivered: {},
+		repository.OrderStatusCancelled: {},
+	}
+	for _, s := range allowed[current] {
+		if s == next {
+			return true
+		}
+	}
+	return false
 }

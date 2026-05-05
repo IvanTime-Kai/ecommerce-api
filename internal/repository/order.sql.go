@@ -12,6 +12,58 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelOrder = `-- name: CancelOrder :one
+UPDATE orders SET status = 'cancelled', updated_at = NOW()
+WHERE id = $1 RETURNING id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at
+`
+
+func (q *Queries) CancelOrder(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, cancelOrder, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ShopID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.ShippingFullName,
+		&i.ShippingPhone,
+		&i.ShippingProvince,
+		&i.ShippingDistrict,
+		&i.ShippingWard,
+		&i.ShippingStreet,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const confirmOrder = `-- name: ConfirmOrder :one
+UPDATE orders SET status = 'confirmed', updated_at = NOW()
+WHERE id = $1 RETURNING id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at
+`
+
+func (q *Queries) ConfirmOrder(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, confirmOrder, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ShopID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.ShippingFullName,
+		&i.ShippingPhone,
+		&i.ShippingProvince,
+		&i.ShippingDistrict,
+		&i.ShippingWard,
+		&i.ShippingStreet,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO
   orders (
@@ -132,6 +184,32 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 	return i, err
 }
 
+const deliverOrder = `-- name: DeliverOrder :one
+UPDATE orders SET status = 'delivered', updated_at = NOW()
+WHERE id = $1 RETURNING id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at
+`
+
+func (q *Queries) DeliverOrder(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, deliverOrder, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ShopID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.ShippingFullName,
+		&i.ShippingPhone,
+		&i.ShippingProvince,
+		&i.ShippingDistrict,
+		&i.ShippingWard,
+		&i.ShippingStreet,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getOrderByID = `-- name: GetOrderByID :one
 SELECT
   id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at
@@ -246,6 +324,32 @@ func (q *Queries) GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Or
 		return nil, err
 	}
 	return items, nil
+}
+
+const shipOrder = `-- name: ShipOrder :one
+UPDATE orders SET status = 'shipping', updated_at = NOW()
+WHERE id = $1 RETURNING id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at
+`
+
+func (q *Queries) ShipOrder(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, shipOrder, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ShopID,
+		&i.Status,
+		&i.TotalAmount,
+		&i.ShippingFullName,
+		&i.ShippingPhone,
+		&i.ShippingProvince,
+		&i.ShippingDistrict,
+		&i.ShippingWard,
+		&i.ShippingStreet,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateOrderStatus = `-- name: UpdateOrderStatus :one

@@ -86,6 +86,12 @@ func main() {
 
 			// ORDER
 			r.Post("/orders", orderHandler.CreateOrder)
+			r.Post("/orders/{id}/confirm", orderHandler.ConfirmOrder)
+			r.Post("/orders/{id}/ship", orderHandler.ShipOrder)
+			r.Post("/orders/{id}/deliver", orderHandler.DeliverOrder)
+			r.Post("/orders/{id}/cancel", orderHandler.CancelOrder)
+			r.Get("/orders/me", orderHandler.GetOrdersByUserID)
+			r.Get("/orders/shop", orderHandler.GetOrdersByShopID)
 		})
 	})
 
