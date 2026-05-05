@@ -87,3 +87,7 @@ WHERE id = $1 RETURNING *;
 -- name: CancelOrder :one
 UPDATE orders SET status = 'cancelled', updated_at = NOW()
 WHERE id = $1 RETURNING *;
+
+-- name: GetOrderItemsByOrderID :many
+SELECT * FROM order_items WHERE order_id = $1;
+

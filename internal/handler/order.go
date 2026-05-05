@@ -95,6 +95,25 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]any{"data": order})
 }
 
+func (h *OrderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
+	paramId := chi.URLParam(r, "id")
+	id, err := uuid.Parse(paramId)
+
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid order id")
+		return
+	}
+
+	order, err := h.service.GetOrderByID(r.Context(), id)
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": order})
+}
+
 func (h *OrderHandler) GetOrdersByUserID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserIDFromContext(r)
 

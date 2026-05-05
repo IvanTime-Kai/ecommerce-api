@@ -36,6 +36,7 @@ type Querier interface {
 	GetAddressByID(ctx context.Context, id uuid.UUID) (Address, error)
 	GetAddressesByUserID(ctx context.Context, userID uuid.UUID) (Address, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
+	GetOrderItemsByOrderID(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
 	GetOrdersByShopID(ctx context.Context, shopID uuid.UUID) ([]Order, error)
 	GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)

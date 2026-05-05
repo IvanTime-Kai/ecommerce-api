@@ -92,6 +92,7 @@ func main() {
 			r.Post("/orders/{id}/cancel", orderHandler.CancelOrder)
 			r.Get("/orders/me", orderHandler.GetOrdersByUserID)
 			r.Get("/orders/shop", orderHandler.GetOrdersByShopID)
+			r.Get("/orders/{id}", orderHandler.GetOrderByID)
 		})
 	})
 

@@ -26,6 +26,11 @@ type OrderItemInput struct {
 	Quantity  int
 }
 
+type OrderDetail struct {
+	Order repository.Order       `json:"order"`
+	Items []repository.OrderItem `json:"items"`
+}
+
 type CreateOrderParams struct {
 	UserID           uuid.UUID
 	ShopID           uuid.UUID
@@ -162,6 +167,20 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	}
 
 	return &order, nil
+}
+
+func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (*OrderDetail, error) {
+	order, err := s.repository.GetOrderByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := s.repository.GetOrderItemsByOrderID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OrderDetail{Order: order, Items: items}, nil
 }
 
 func (s *OrderService) GetOrdersByUserID(ctx context.Context, id uuid.UUID) ([]repository.Order, error) {
