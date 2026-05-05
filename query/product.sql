@@ -19,7 +19,7 @@ FROM
   products
 WHERE
   shop_id = $1
-  AND is_active = true;
+  AND status = 'active';
 
 -- name: UpdateProduct :one
 UPDATE
@@ -27,7 +27,7 @@ UPDATE
 SET
   name = $2,
   description = $3,
-  is_active = $4,
+  status = $4,
   updated_at = NOW()
 WHERE
   id = $1 RETURNING *;
@@ -37,7 +37,6 @@ UPDATE
   products
 SET
   status = 'deleted',
-  is_active = false,
   updated_at = NOW()
 WHERE
   id = $1;
@@ -51,3 +50,31 @@ FROM
 WHERE
   p.id = $1
   AND s.owner_id = $2;
+
+-- name: GetProductsForOrder :many
+SELECT
+  id,
+  name,
+  price,
+  stock,
+  shop_id
+FROM
+  products
+WHERE
+  id = ANY($1::uuid[])
+  AND shop_id = $2
+  AND status = 'active'
+ORDER BY
+  id FOR
+UPDATE
+;
+
+-- name: DeductProductStock :one
+UPDATE
+  products
+SET
+  stock = stock - $2,
+  updated_at = NOW()
+WHERE
+  id = $1
+  AND stock >= $2 RETURNING *;

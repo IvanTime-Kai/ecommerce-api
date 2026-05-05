@@ -16,12 +16,15 @@ type Querier interface {
 	CheckUserEnabledMFA(ctx context.Context, userID uuid.UUID) (bool, error)
 	CheckUserPhoneExists(ctx context.Context, phone pgtype.Text) (bool, error)
 	CreateAddress(ctx context.Context, arg CreateAddressParams) (Address, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
+	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateShop(ctx context.Context, arg CreateShopParams) (Shop, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAuth(ctx context.Context, arg CreateUserAuthParams) (UserAuth, error)
 	CreateUserMFA(ctx context.Context, arg CreateUserMFAParams) (UserMfa, error)
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) (AuthSession, error)
+	DeductProductStock(ctx context.Context, arg DeductProductStockParams) (Product, error)
 	DeleteAddress(ctx context.Context, id uuid.UUID) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteSessionByRefreshToken(ctx context.Context, refreshTokenHash string) error
@@ -29,9 +32,13 @@ type Querier interface {
 	GeShopByID(ctx context.Context, id uuid.UUID) (Shop, error)
 	GetAddressByID(ctx context.Context, id uuid.UUID) (Address, error)
 	GetAddressesByUserID(ctx context.Context, userID uuid.UUID) (Address, error)
+	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
+	GetOrdersByShopID(ctx context.Context, shopID uuid.UUID) ([]Order, error)
+	GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
 	GetProductByIDAndShopOwner(ctx context.Context, arg GetProductByIDAndShopOwnerParams) (Product, error)
 	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)
+	GetProductsForOrder(ctx context.Context, arg GetProductsForOrderParams) ([]GetProductsForOrderRow, error)
 	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
 	GetShopByOwnerID(ctx context.Context, ownerID uuid.UUID) (Shop, error)
 	GetShopBySlug(ctx context.Context, slug string) (Shop, error)
@@ -43,6 +50,7 @@ type Querier interface {
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
 	SetDefaultAddress(ctx context.Context, userID uuid.UUID) error
 	UpdateAddressDefault(ctx context.Context, id uuid.UUID) error
+	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
 }

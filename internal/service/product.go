@@ -25,7 +25,7 @@ type UpdateProductParams struct {
 	UserID      uuid.UUID
 	Name        string
 	Description *string
-	IsActive    bool
+	Status      repository.ProductStatus
 }
 
 type DeleteProductParams struct {
@@ -93,7 +93,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req UpdateProductPar
 		ID:          req.ID,
 		Name:        req.Name,
 		Description: toNullString(req.Description),
-		IsActive:    req.IsActive,
+		Status:      req.Status,
 	})
 
 	if err != nil {

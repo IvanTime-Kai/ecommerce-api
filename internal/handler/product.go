@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -25,9 +26,9 @@ type CreateProductRequest struct {
 }
 
 type UpdateProductRequest struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description"`
-	IsActive    bool    `json:"is_active"`
+	Name        string                   `json:"name"`
+	Description *string                  `json:"description"`
+	Status      repository.ProductStatus `json:"status"`
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +126,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		UserID:      userID,
 		Name:        req.Name,
 		Description: req.Description,
-		IsActive:    req.IsActive,
+		Status:      req.Status,
 	})
 
 	if err != nil {

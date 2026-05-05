@@ -48,6 +48,9 @@ func main() {
 	addressService := service.NewAddressService(q, pool)
 	addressHandler := handler.NewAddressHandler(addressService)
 
+	orderService := service.NewOrderService(q, pool)
+	orderHandler := handler.NewOrderHandler(orderService)
+
 	r.Route("/api/v1", func(r chi.Router) {
 		// AUTH
 		r.Post("/auth/logout", userHandler.Logout)
@@ -80,6 +83,9 @@ func main() {
 			r.Get("/addresses/{id}", addressHandler.GetAddressByID)
 			r.Patch("/addresses/{id}/default", addressHandler.SetDefaultAddress)
 			r.Delete("/addresses/{id}", addressHandler.DeleteAddress)
+
+			// ORDER
+			r.Post("/orders", orderHandler.CreateOrder)
 		})
 	})
 

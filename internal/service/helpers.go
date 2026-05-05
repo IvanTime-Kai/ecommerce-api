@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -37,4 +38,15 @@ func generateSlug(name string) string {
 	slug := strings.ReplaceAll(lowerName, " ", "-")
 	slug = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(slug, "")
 	return fmt.Sprintf("%s-%s", slug, uuid.New().String()[:8])
+}
+
+func numericToFloat(n pgtype.Numeric) float64 {
+	f, _ := n.Float64Value()
+	return f.Float64
+}
+
+func floatToNumeric(f float64) pgtype.Numeric {
+	var n pgtype.Numeric
+	n.Scan(strconv.FormatFloat(f, 'f', 2, 64))
+	return n
 }

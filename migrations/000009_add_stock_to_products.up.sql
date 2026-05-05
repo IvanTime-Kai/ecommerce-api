@@ -1,0 +1,12 @@
+ALTER TABLE
+  products
+ADD
+  COLUMN stock INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE
+  products
+ADD
+  COLUMN price NUMERIC(12, 2) NOT NULL DEFAULT 0;
+
+ALTER TABLE
+  products DROP COLUMN is_active;

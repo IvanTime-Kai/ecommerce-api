@@ -55,6 +55,51 @@ func (ns NullMethodType) Value() (driver.Value, error) {
 	return string(ns.MethodType), nil
 }
 
+type OrderStatus string
+
+const (
+	OrderStatusPending   OrderStatus = "pending"
+	OrderStatusConfirmed OrderStatus = "confirmed"
+	OrderStatusShipping  OrderStatus = "shipping"
+	OrderStatusDelivered OrderStatus = "delivered"
+	OrderStatusCancelled OrderStatus = "cancelled"
+)
+
+func (e *OrderStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OrderStatus(s)
+	case string:
+		*e = OrderStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OrderStatus: %T", src)
+	}
+	return nil
+}
+
+type NullOrderStatus struct {
+	OrderStatus OrderStatus `json:"order_status"`
+	Valid       bool        `json:"valid"` // Valid is true if OrderStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOrderStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.OrderStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OrderStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOrderStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OrderStatus), nil
+}
+
 type ProductStatus string
 
 const (
@@ -253,15 +298,43 @@ type AuthSession struct {
 	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type Order struct {
+	ID               uuid.UUID          `json:"id"`
+	UserID           uuid.UUID          `json:"user_id"`
+	ShopID           uuid.UUID          `json:"shop_id"`
+	Status           OrderStatus        `json:"status"`
+	TotalAmount      pgtype.Numeric     `json:"total_amount"`
+	ShippingFullName string             `json:"shipping_full_name"`
+	ShippingPhone    string             `json:"shipping_phone"`
+	ShippingProvince string             `json:"shipping_province"`
+	ShippingDistrict string             `json:"shipping_district"`
+	ShippingWard     string             `json:"shipping_ward"`
+	ShippingStreet   string             `json:"shipping_street"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type OrderItem struct {
+	ID          uuid.UUID          `json:"id"`
+	OrderID     uuid.UUID          `json:"order_id"`
+	ProductID   uuid.UUID          `json:"product_id"`
+	ProductName string             `json:"product_name"`
+	Quantity    int32              `json:"quantity"`
+	Price       pgtype.Numeric     `json:"price"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Product struct {
 	ID          uuid.UUID          `json:"id"`
 	ShopID      uuid.UUID          `json:"shop_id"`
 	Name        string             `json:"name"`
 	Description pgtype.Text        `json:"description"`
-	IsActive    bool               `json:"is_active"`
 	Status      ProductStatus      `json:"status"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	Stock       int32              `json:"stock"`
+	Price       pgtype.Numeric     `json:"price"`
 }
 
 type Shop struct {
