@@ -35,6 +35,7 @@ func main() {
 	r.Use(middlewareChi.Recoverer)
 
 	q := repository.New(pool)
+
 	userService := service.NewUserService(q, pool, &cfg.JWT)
 	userHandler := handler.NewUserHandler(userService)
 
@@ -43,6 +44,9 @@ func main() {
 
 	productService := service.NewProductService(q)
 	productHandler := handler.NewProductHandler(productService)
+
+	addressService := service.NewAddressService(q, pool)
+	addressHandler := handler.NewAddressHandler(addressService)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// AUTH
@@ -71,6 +75,11 @@ func main() {
 			r.Put("/products/{id}", productHandler.UpdateProduct)
 			r.Delete("/products/{id}", productHandler.DeleteProduct)
 
+			// ADDRESS
+			r.Post("/addresses", addressHandler.CreateAddress)
+			r.Get("/addresses/{id}", addressHandler.GetAddressByID)
+			r.Patch("/addresses/{id}/default", addressHandler.SetDefaultAddress)
+			r.Delete("/addresses/{id}", addressHandler.DeleteAddress)
 		})
 	})
 

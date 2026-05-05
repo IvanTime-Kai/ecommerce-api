@@ -226,6 +226,20 @@ func (ns NullUserStatus) Value() (driver.Value, error) {
 	return string(ns.UserStatus), nil
 }
 
+type Address struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	FullName  string             `json:"full_name"`
+	Phone     string             `json:"phone"`
+	Province  string             `json:"province"`
+	District  string             `json:"district"`
+	Ward      string             `json:"ward"`
+	Street    string             `json:"street"`
+	IsDefault bool               `json:"is_default"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AuthSession struct {
 	ID               uuid.UUID          `json:"id"`
 	UserID           uuid.UUID          `json:"user_id"`
