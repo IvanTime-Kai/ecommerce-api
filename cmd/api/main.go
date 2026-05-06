@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/config"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/db"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/handler"
@@ -35,6 +36,14 @@ func main() {
 
 	defer pool.Close()
 
+	redis, err := cache.NewRedisClient(cfg.Redis.Url)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer redis.Close()
+
 	r := chi.NewRouter()
 	r.Use(middlewareChi.Logger)
 	r.Use(middlewareChi.Recoverer)
@@ -48,7 +57,7 @@ func main() {
 	shopService := service.NewShopService(q)
 	shopHandler := handler.NewShopHandler(shopService)
 
-	productService := service.NewProductService(q)
+	productService := service.NewProductService(q, redis)
 	productHandler := handler.NewProductHandler(productService)
 
 	addressService := service.NewAddressService(q, pool)

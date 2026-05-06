@@ -11,6 +11,10 @@ type DBConfig struct {
 	Url string
 }
 
+type RedisConfig struct {
+	Url string
+}
+
 type ServerConfig struct {
 	Port           string
 	Mode           string
@@ -25,6 +29,7 @@ type JWTConfig struct {
 
 type Config struct {
 	DB     DBConfig
+	Redis  RedisConfig
 	Server ServerConfig
 	JWT    JWTConfig
 }
