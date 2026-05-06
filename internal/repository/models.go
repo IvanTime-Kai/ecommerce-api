@@ -298,6 +298,13 @@ type AuthSession struct {
 	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type IdempotencyKey struct {
+	Key       string             `json:"key"`
+	Response  []byte             `json:"response"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Order struct {
 	ID               uuid.UUID          `json:"id"`
 	UserID           uuid.UUID          `json:"user_id"`

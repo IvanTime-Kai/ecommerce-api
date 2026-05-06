@@ -91,3 +91,10 @@ WHERE id = $1 RETURNING *;
 -- name: GetOrderItemsByOrderID :many
 SELECT * FROM order_items WHERE order_id = $1;
 
+-- name: CreateIdempotencyKey :exec
+INSERT INTO idempotency_keys (key, response, expires_at)
+VALUES ($1, $2, $3);
+
+-- name: GetIdempotencyKey :one
+SELECT * FROM idempotency_keys
+WHERE key = $1 AND expires_at > NOW();

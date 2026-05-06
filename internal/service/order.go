@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -42,6 +44,7 @@ type CreateOrderParams struct {
 	ShippingWard     string
 	ShippingStreet   string
 	Items            []OrderItemInput
+	IdempotencyKey   string
 }
 
 type OrderActionParams struct {
@@ -57,8 +60,20 @@ func NewOrderService(repository repository.Querier, db *pgxpool.Pool) *OrderServ
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (*repository.Order, error) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 
+	// Check Idempotency key from header 
+	if req.IdempotencyKey != "" {
+		idempotencyKey, err := s.repository.GetIdempotencyKey(ctx, req.IdempotencyKey)
+
+		if err == nil {
+			var order repository.Order
+			json.Unmarshal(idempotencyKey.Response, &order)
+			return &order, nil
+		}
+	}
+
+	// Handler func timeout after 10s
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	itemsLength := len(req.Items)
@@ -168,6 +183,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
+	}
+
+	if req.IdempotencyKey != "" {
+		responseBytes, _ := json.Marshal(order)
+		s.repository.CreateIdempotencyKey(ctx, repository.CreateIdempotencyKeyParams{
+			Key:       req.IdempotencyKey,
+			Response:  responseBytes,
+			ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(24 * time.Hour), Valid: true},
+		})
 	}
 
 	return &order, nil

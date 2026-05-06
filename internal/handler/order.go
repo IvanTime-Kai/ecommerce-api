@@ -45,6 +45,8 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	idempotencyKey := r.Header.Get("X-Idempotency-Key")
+
 	var req CreateOrderRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -70,6 +72,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		ShippingWard:     req.ShippingWard,
 		ShippingStreet:   req.ShippingStreet,
 		Items:            items,
+		IdempotencyKey:   idempotencyKey,
 	})
 
 	if err != nil {

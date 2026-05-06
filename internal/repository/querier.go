@@ -18,6 +18,7 @@ type Querier interface {
 	CheckUserPhoneExists(ctx context.Context, phone pgtype.Text) (bool, error)
 	ConfirmOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	CreateAddress(ctx context.Context, arg CreateAddressParams) (Address, error)
+	CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) error
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
@@ -35,6 +36,7 @@ type Querier interface {
 	GeShopByID(ctx context.Context, id uuid.UUID) (Shop, error)
 	GetAddressByID(ctx context.Context, id uuid.UUID) (Address, error)
 	GetAddressesByUserID(ctx context.Context, userID uuid.UUID) (Address, error)
+	GetIdempotencyKey(ctx context.Context, key string) (IdempotencyKey, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
 	GetOrderItemsByOrderID(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
 	GetOrdersByShopID(ctx context.Context, shopID uuid.UUID) ([]Order, error)

@@ -64,6 +64,22 @@ func (q *Queries) ConfirmOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	return i, err
 }
 
+const createIdempotencyKey = `-- name: CreateIdempotencyKey :exec
+INSERT INTO idempotency_keys (key, response, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type CreateIdempotencyKeyParams struct {
+	Key       string             `json:"key"`
+	Response  []byte             `json:"response"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) error {
+	_, err := q.db.Exec(ctx, createIdempotencyKey, arg.Key, arg.Response, arg.ExpiresAt)
+	return err
+}
+
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO
   orders (
@@ -206,6 +222,23 @@ func (q *Queries) DeliverOrder(ctx context.Context, id uuid.UUID) (Order, error)
 		&i.ShippingStreet,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getIdempotencyKey = `-- name: GetIdempotencyKey :one
+SELECT key, response, expires_at, created_at FROM idempotency_keys
+WHERE key = $1 AND expires_at > NOW()
+`
+
+func (q *Queries) GetIdempotencyKey(ctx context.Context, key string) (IdempotencyKey, error) {
+	row := q.db.QueryRow(ctx, getIdempotencyKey, key)
+	var i IdempotencyKey
+	err := row.Scan(
+		&i.Key,
+		&i.Response,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
