@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/config"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/db"
@@ -33,6 +38,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middlewareChi.Logger)
 	r.Use(middlewareChi.Recoverer)
+	r.Use(middlewareChi.Timeout(time.Duration(cfg.Server.RequestTimeout) * time.Second))
 
 	q := repository.New(pool)
 
@@ -96,6 +102,30 @@ func main() {
 		})
 	})
 
-	log.Printf("Server running on port %s", cfg.Server.Port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.Server.Port), r))
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%s", cfg.Server.Port),
+		Handler: r,
+	}
+
+	go func() {
+		log.Printf("Server running on port %s", cfg.Server.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.RequestTimeout)*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exited")
 }

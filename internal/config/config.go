@@ -12,8 +12,9 @@ type DBConfig struct {
 }
 
 type ServerConfig struct {
-	Port string
-	Mode string
+	Port           string
+	Mode           string
+	RequestTimeout int
 }
 
 type JWTConfig struct {
@@ -45,13 +46,19 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	requestTimeout, err := strconv.Atoi(os.Getenv("SERVER_REQUEST_TIMEOUT"))
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
 		DB: DBConfig{
 			Url: os.Getenv("DB_URL"),
 		},
 		Server: ServerConfig{
-			Port: os.Getenv("SERVER_PORT"),
-			Mode: os.Getenv("SERVER_MODE"),
+			Port:           os.Getenv("SERVER_PORT"),
+			Mode:           os.Getenv("SERVER_MODE"),
+			RequestTimeout: requestTimeout,
 		},
 		JWT: JWTConfig{
 			ApiSecret:       os.Getenv("JWT_SECRET"),

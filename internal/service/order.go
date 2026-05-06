@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
@@ -56,6 +57,9 @@ func NewOrderService(repository repository.Querier, db *pgxpool.Pool) *OrderServ
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (*repository.Order, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+
+	defer cancel()
 
 	itemsLength := len(req.Items)
 
