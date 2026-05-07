@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +16,7 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/config"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/db"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/handler"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/middleware"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
@@ -22,6 +25,10 @@ import (
 )
 
 func main() {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	cfg, err := config.LoadConfig()
 
 	if err != nil {
@@ -35,6 +42,29 @@ func main() {
 	}
 
 	defer pool.Close()
+
+	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Broker, kafka.TopicOrderCreated)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer kafkaProducer.Close()
+
+	kafkaConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicOrderCreated, kafka.GroupID)
+
+	notificationService := service.NewNotificationService(&cfg.SMTP)
+
+	go kafkaConsumer.Consume(ctx, func(key, value []byte) error {
+		slog.Info("received kafka message", "key", string(key))
+		var event kafka.OrderCreatedEvent
+		if err := json.Unmarshal(value, &event); err != nil {
+			return err
+		}
+		return notificationService.SendOrderConfirmation(event)
+	})
+
+	defer kafkaConsumer.Close()
 
 	redis, err := cache.NewRedisClient(cfg.Redis.Url)
 
@@ -63,7 +93,7 @@ func main() {
 	addressService := service.NewAddressService(q, pool)
 	addressHandler := handler.NewAddressHandler(addressService)
 
-	orderService := service.NewOrderService(q, pool)
+	orderService := service.NewOrderService(q, pool, kafkaProducer)
 	orderHandler := handler.NewOrderHandler(orderService)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -129,10 +159,10 @@ func main() {
 
 	log.Println("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.RequestTimeout)*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.RequestTimeout)*time.Second)
+	defer shutdownCancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
 

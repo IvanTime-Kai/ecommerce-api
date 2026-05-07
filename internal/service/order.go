@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,7 @@ var ErrInvalidTransition = fmt.Errorf("invalid order transition")
 type OrderService struct {
 	repository repository.Querier
 	db         *pgxpool.Pool
+	kafka      *kafka.Producer
 }
 
 type OrderItemInput struct {
@@ -52,16 +54,17 @@ type OrderActionParams struct {
 	UserID uuid.UUID
 }
 
-func NewOrderService(repository repository.Querier, db *pgxpool.Pool) *OrderService {
+func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka *kafka.Producer) *OrderService {
 	return &OrderService{
 		repository: repository,
 		db:         db,
+		kafka:      kafka,
 	}
 }
 
 func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (*repository.Order, error) {
 
-	// Check Idempotency key from header 
+	// Check Idempotency key from header
 	if req.IdempotencyKey != "" {
 		idempotencyKey, err := s.repository.GetIdempotencyKey(ctx, req.IdempotencyKey)
 
@@ -185,8 +188,28 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		return nil, err
 	}
 
+	user, err := s.repository.GetUserByID(ctx, req.UserID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	event := kafka.OrderCreatedEvent{
+		UserID:      req.UserID.String(),
+		OrderID:     order.ID.String(),
+		BuyerEmail:  user.Email.String,
+		TotalAmount: total,
+	}
+
+	responseBytes, _ := json.Marshal(order)
+	eventBytes, _ := json.Marshal(event)
+
+	go func() {
+		s.kafka.Publish(context.Background(), []byte(order.ID.String()), eventBytes)
+	}()
+
 	if req.IdempotencyKey != "" {
-		responseBytes, _ := json.Marshal(order)
+
 		s.repository.CreateIdempotencyKey(ctx, repository.CreateIdempotencyKeyParams{
 			Key:       req.IdempotencyKey,
 			Response:  responseBytes,

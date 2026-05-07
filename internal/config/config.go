@@ -27,11 +27,24 @@ type JWTConfig struct {
 	RefreshTokenTTL int
 }
 
+type KafkaConfig struct {
+	Broker string
+}
+
+type SMTPConfig struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+}
+
 type Config struct {
 	DB     DBConfig
 	Redis  RedisConfig
 	Server ServerConfig
 	JWT    JWTConfig
+	Kafka  KafkaConfig
+	SMTP   SMTPConfig
 }
 
 func LoadConfig() (*Config, error) {
@@ -60,6 +73,9 @@ func LoadConfig() (*Config, error) {
 		DB: DBConfig{
 			Url: os.Getenv("DB_URL"),
 		},
+		Redis: RedisConfig{
+			Url: os.Getenv("REDIS_URL"),
+		},
 		Server: ServerConfig{
 			Port:           os.Getenv("SERVER_PORT"),
 			Mode:           os.Getenv("SERVER_MODE"),
@@ -69,6 +85,15 @@ func LoadConfig() (*Config, error) {
 			ApiSecret:       os.Getenv("JWT_SECRET"),
 			AccessTokenTTL:  accessTokenTTL,
 			RefreshTokenTTL: refreshTokenTTL,
+		},
+		Kafka: KafkaConfig{
+			Broker: os.Getenv("KAFKA_BROKER"),
+		},
+		SMTP: SMTPConfig{
+			Host:     os.Getenv("SMTP_HOST"),
+			Port:     os.Getenv("SMTP_PORT"),
+			Username: os.Getenv("SMTP_USERNAME"),
+			Password: os.Getenv("SMTP_PASSWORD"),
 		},
 	}, nil
 }
