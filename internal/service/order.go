@@ -23,7 +23,7 @@ var ErrInvalidTransition = fmt.Errorf("invalid order transition")
 type OrderService struct {
 	repository repository.Querier
 	db         *pgxpool.Pool
-	kafka      *kafka.Producer
+	kafka      kafka.KafkaProducer
 }
 
 type OrderItemInput struct {
@@ -54,7 +54,7 @@ type OrderActionParams struct {
 	UserID uuid.UUID
 }
 
-func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka *kafka.Producer) *OrderService {
+func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka kafka.KafkaProducer) *OrderService {
 	return &OrderService{
 		repository: repository,
 		db:         db,

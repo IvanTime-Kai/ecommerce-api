@@ -10,6 +10,11 @@ type Producer struct {
 	writer *kafka.Writer
 }
 
+type KafkaProducer interface {
+	Publish(ctx context.Context, key, value []byte) error
+	Close() error
+}
+
 func NewProducer(brokerAddress, topic string) (*Producer, error) {
 	conn, err := kafka.Dial("tcp", brokerAddress)
 	if err != nil {

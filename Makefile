@@ -14,3 +14,5 @@ db-stop:
 	docker compose down
 sqlc-gen:
 	sqlc generate
+test:
+	DATABASE_URL="postgres://root:123@localhost:5432/ecommerce?sslmode=disable" go test -v ./internal/...
