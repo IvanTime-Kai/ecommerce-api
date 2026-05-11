@@ -78,3 +78,6 @@ SET
 WHERE
   id = $1
   AND stock >= $2 RETURNING *;
+
+-- name: GetAllProducts :many
+SELECT * FROM products;

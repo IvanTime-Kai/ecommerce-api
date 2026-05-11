@@ -95,7 +95,18 @@ func main() {
 	addressService := service.NewAddressService(q, pool)
 	addressHandler := handler.NewAddressHandler(addressService)
 
-	orderService := service.NewOrderService(q, pool, kafkaProducer)
+	stockCache := cache.NewStockCache(redis)
+
+	// Load stock từ DB vào Redis
+	
+	products, err := repository.New(pool).GetAllProducts(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, p := range products {
+		stockCache.SetStock(ctx, p.ID.String(), int(p.Stock))
+	}
+	orderService := service.NewOrderService(q, pool, kafkaProducer, stockCache)
 	orderHandler := handler.NewOrderHandler(orderService)
 
 	r.Route("/api/v1", func(r chi.Router) {

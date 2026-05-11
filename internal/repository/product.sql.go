@@ -100,6 +100,40 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getAllProducts = `-- name: GetAllProducts :many
+SELECT id, shop_id, name, description, status, created_at, updated_at, stock, price FROM products
+`
+
+func (q *Queries) GetAllProducts(ctx context.Context) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getAllProducts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Product{}
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShopID,
+			&i.Name,
+			&i.Description,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Stock,
+			&i.Price,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProductByID = `-- name: GetProductByID :one
 SELECT
   id, shop_id, name, description, status, created_at, updated_at, stock, price

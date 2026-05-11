@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ type OrderService struct {
 	repository repository.Querier
 	db         *pgxpool.Pool
 	kafka      kafka.KafkaProducer
+	cacheStock *cache.StockCache
 }
 
 type OrderItemInput struct {
@@ -54,11 +56,12 @@ type OrderActionParams struct {
 	UserID uuid.UUID
 }
 
-func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka kafka.KafkaProducer) *OrderService {
+func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka kafka.KafkaProducer, cacheStock *cache.StockCache) *OrderService {
 	return &OrderService{
 		repository: repository,
 		db:         db,
 		kafka:      kafka,
+		cacheStock: cacheStock,
 	}
 }
 
@@ -83,6 +86,16 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 
 	if itemsLength == 0 {
 		return nil, ErrEmptyItems
+	}
+
+	for _, item := range req.Items {
+		ok, err := s.cacheStock.DeductStock(ctx, item.ProductID.String(), item.Quantity)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, fmt.Errorf("%w: product %s", ErrOutOfStock, item.ProductID)
+		}
 	}
 
 	tx, err := s.db.Begin(ctx)

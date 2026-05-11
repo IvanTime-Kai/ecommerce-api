@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/db"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
@@ -15,8 +16,9 @@ import (
 )
 
 var (
-	testDB   *pgxpool.Pool
-	testRepo *repository.Queries
+	testDB     *pgxpool.Pool
+	testRepo   *repository.Queries
+	cacheStock *cache.StockCache
 )
 
 type mockKafkaProducer struct{}
@@ -47,7 +49,7 @@ func TestMain(m *testing.M) {
 func TestCreateOrder_RaceCondition(t *testing.T) {
 	ctx := context.Background()
 
-	orderService := NewOrderService(testRepo, testDB, &mockKafkaProducer{})
+	orderService := NewOrderService(testRepo, testDB, &mockKafkaProducer{}, cacheStock)
 
 	req := CreateOrderParams{
 		UserID: uuid.MustParse("019e015e-d6db-70ea-9d36-a0e375666278"),
