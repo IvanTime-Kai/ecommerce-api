@@ -74,6 +74,8 @@ func main() {
 
 	defer redis.Close()
 
+	rateLimiter := middleware.NewRateLimiter(redis, 5, time.Minute)
+
 	r := chi.NewRouter()
 	r.Use(middlewareChi.Logger)
 	r.Use(middlewareChi.Recoverer)
@@ -100,7 +102,7 @@ func main() {
 		// AUTH
 		r.Post("/auth/logout", userHandler.Logout)
 		r.Post("/auth/register", userHandler.Register)
-		r.Post("/auth/login", userHandler.Login)
+		r.With(rateLimiter.Limit).Post("/auth/login", userHandler.Login)
 		r.Post("/auth/refresh-token", userHandler.RefreshToken)
 
 		r.Group(func(r chi.Router) {
