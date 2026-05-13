@@ -12,13 +12,15 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	testDB     *pgxpool.Pool
-	testRepo   *repository.Queries
-	cacheStock *cache.StockCache
+	testDB      *pgxpool.Pool
+	testRepo    *repository.Queries
+	cacheStock  *cache.StockCache
+	redisClient *redis.Client
 )
 
 type mockKafkaProducer struct{}
@@ -43,11 +45,29 @@ func TestMain(m *testing.M) {
 	testDB = pool
 	testRepo = repository.New(pool)
 
+	redisClient = redis.NewClient(&redis.Options{
+		Addr: os.Getenv("REDIS_URL"),
+	})
+
+	cacheStock = cache.NewStockCache(redisClient)
+
 	os.Exit(m.Run())
 }
 
 func TestCreateOrder_RaceCondition(t *testing.T) {
 	ctx := context.Background()
+
+	productID := uuid.MustParse("019e015f-845b-7d0f-9734-b259d5453c4c")
+
+	err := cacheStock.SetStock(ctx, productID.String(), 1)
+	if err != nil {
+		t.Fatalf("failed to seed redis stock: %v", err)
+	}
+
+	_, err = testDB.Exec(ctx, "UPDATE products SET stock = 1 WHERE id = $1", productID)
+	if err != nil {
+		t.Fatalf("failed to reset db stock: %v", err)
+	}
 
 	orderService := NewOrderService(testRepo, testDB, &mockKafkaProducer{}, cacheStock)
 
@@ -55,7 +75,7 @@ func TestCreateOrder_RaceCondition(t *testing.T) {
 		UserID: uuid.MustParse("019e015e-d6db-70ea-9d36-a0e375666278"),
 		ShopID: uuid.MustParse("019e015f-49e0-753b-b6e5-5707f87f49b9"),
 		Items: []OrderItemInput{
-			{ProductID: uuid.MustParse("019e015f-845b-7d0f-9734-b259d5453c4c"), Quantity: 1},
+			{ProductID: productID, Quantity: 1},
 		},
 		ShippingFullName: "Test User",
 		ShippingPhone:    "0901234567",
