@@ -344,6 +344,13 @@ type Product struct {
 	Price       pgtype.Numeric     `json:"price"`
 }
 
+type RevenueSummary struct {
+	ShopID     uuid.UUID      `json:"shop_id"`
+	Date       pgtype.Date    `json:"date"`
+	Total      pgtype.Numeric `json:"total"`
+	OrderCount int32          `json:"order_count"`
+}
+
 type Shop struct {
 	ID          uuid.UUID          `json:"id"`
 	OwnerID     uuid.UUID          `json:"owner_id"`

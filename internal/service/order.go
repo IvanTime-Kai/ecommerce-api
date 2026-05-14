@@ -340,9 +340,33 @@ func (s *OrderService) DeliverOrder(ctx context.Context, req OrderActionParams) 
 		return nil, fmt.Errorf("%w: order is not in shipping status", ErrInvalidTransition)
 	}
 
-	order, err = s.repository.DeliverOrder(ctx, req.ID)
+	tx, err := s.db.Begin(ctx)
 
 	if err != nil {
+		return nil, err
+	}
+
+	defer tx.Rollback(ctx)
+
+	qtx := repository.New(tx)
+
+	order, err = qtx.DeliverOrder(ctx, req.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = qtx.UpsertRevenueSummary(ctx, repository.UpsertRevenueSummaryParams{
+		ShopID: order.ShopID,
+		Date:   pgtype.Date{Time: time.Now(), Valid: true},
+		Total:  order.TotalAmount,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
@@ -372,4 +396,13 @@ func (s *OrderService) CancelOrder(ctx context.Context, req OrderActionParams) (
 	}
 
 	return &order, nil
+}
+
+func (s *OrderService) GetRevenueSummary(ctx context.Context, userID uuid.UUID) ([]repository.GetRevenueSummaryRow, error) {
+	shop, err := s.repository.GetShopByOwnerID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repository.GetRevenueSummary(ctx, shop.ID)
 }

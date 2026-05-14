@@ -231,3 +231,21 @@ func (h *OrderHandler) handleOrderAction(
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": order})
 }
+
+func (h *OrderHandler) GetRevenueSummary(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserIDFromContext(r)
+
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
+		return
+	}
+
+	revenue, err := h.service.GetRevenueSummary(r.Context(), userID)
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": revenue})
+}

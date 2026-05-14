@@ -44,11 +44,12 @@ func main() {
 	defer pool.Close()
 
 	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Broker, kafka.TopicOrderCreated)
-	cbProducer := kafka.NewCircuitBreakerProducer(kafkaProducer)
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	cbProducer := kafka.NewCircuitBreakerProducer(kafkaProducer)
 
 	defer kafkaProducer.Close()
 
@@ -152,6 +153,7 @@ func main() {
 			r.Get("/orders/me", orderHandler.GetOrdersByUserID)
 			r.Get("/orders/shop", orderHandler.GetOrdersByShopID)
 			r.Get("/orders/{id}", orderHandler.GetOrderByID)
+			r.Get("/orders/revenue-summary", orderHandler.GetRevenueSummary)
 		})
 	})
 

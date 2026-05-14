@@ -46,6 +46,7 @@ type Querier interface {
 	GetProductByIDAndShopOwner(ctx context.Context, arg GetProductByIDAndShopOwnerParams) (Product, error)
 	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)
 	GetProductsForOrder(ctx context.Context, arg GetProductsForOrderParams) ([]GetProductsForOrderRow, error)
+	GetRevenueSummary(ctx context.Context, shopID uuid.UUID) ([]GetRevenueSummaryRow, error)
 	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
 	GetShopByOwnerID(ctx context.Context, ownerID uuid.UUID) (Shop, error)
 	GetShopBySlug(ctx context.Context, slug string) (Shop, error)
@@ -61,6 +62,7 @@ type Querier interface {
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateShop(ctx context.Context, arg UpdateShopParams) (Shop, error)
+	UpsertRevenueSummary(ctx context.Context, arg UpsertRevenueSummaryParams) error
 }
 
 var _ Querier = (*Queries)(nil)
