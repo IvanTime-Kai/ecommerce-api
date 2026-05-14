@@ -20,6 +20,7 @@ require (
 	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/redis/go-redis/v9 v9.19.0 // indirect
 	github.com/segmentio/kafka-go v0.4.51 // indirect
+	github.com/sony/gobreaker v1.0.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
