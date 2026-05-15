@@ -56,6 +56,17 @@ type OrderActionParams struct {
 	UserID uuid.UUID
 }
 
+type GetOrderParams struct {
+	UserID uuid.UUID
+	Cursor *uuid.UUID
+	Limit  int32
+}
+
+type GetOrdersResponse struct {
+	Orders     []repository.Order `json:"orders"`
+	NextCursor *uuid.UUID         `json:"next_cursor"`
+}
+
 func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka kafka.KafkaProducer, cacheStock *cache.StockCache) *OrderService {
 	return &OrderService{
 		repository: repository,
@@ -247,8 +258,40 @@ func (s *OrderService) GetOrderByID(ctx context.Context, id uuid.UUID) (*OrderDe
 	return &OrderDetail{Order: order, Items: items}, nil
 }
 
-func (s *OrderService) GetOrdersByUserID(ctx context.Context, id uuid.UUID) ([]repository.Order, error) {
-	return s.repository.GetOrdersByUserID(ctx, id)
+func (s *OrderService) GetOrdersByUserID(ctx context.Context, req GetOrderParams) (*GetOrdersResponse, error) {
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+
+	var cursor uuid.UUID
+
+	if req.Cursor != nil {
+		cursor = *req.Cursor
+	}
+
+	orders, err := s.repository.GetOrdersByUserIDWithCursor(ctx, repository.GetOrdersByUserIDWithCursorParams{
+		UserID:  req.UserID,
+		Column2: cursor,
+		Limit:   req.Limit,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var nextCursor *uuid.UUID
+
+	ordersLength := len(orders)
+
+	if ordersLength == int(req.Limit) {
+		last := orders[ordersLength-1].ID
+		nextCursor = &last
+	}
+
+	return &GetOrdersResponse{
+		Orders:     orders,
+		NextCursor: nextCursor,
+	}, nil
 }
 
 func (s *OrderService) GetOrdersByShopID(ctx context.Context, userID uuid.UUID) ([]repository.Order, error) {

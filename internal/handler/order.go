@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
@@ -35,6 +36,12 @@ type CreateOrderRequest struct {
 	ShippingWard     string           `json:"shipping_ward"`
 	ShippingStreet   string           `json:"shipping_street"`
 	Items            []OrderItemInput `json:"items"`
+}
+
+type GetOrdersByUserIDRequest struct {
+	OffSet     int        `json:"off_set"`
+	Limit      int        `json:"limit"`
+	NextCursor *uuid.UUID `json:"next_cursor"`
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +132,25 @@ func (h *OrderHandler) GetOrdersByUserID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	orders, err := h.service.GetOrdersByUserID(r.Context(), userID)
+	limitStr := r.URL.Query().Get("limit")
+	limit, _ := strconv.Atoi(limitStr)
+
+	var cursor *uuid.UUID
+	if cursorStr := r.URL.Query().Get("cursor"); cursorStr != "" {
+		id, err := uuid.Parse(cursorStr)
+
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "INVALID_CURSOR", "invalid cursor")
+			return
+		}
+		cursor = &id
+	}
+
+	orders, err := h.service.GetOrdersByUserID(r.Context(), service.GetOrderParams{
+		UserID: userID,
+		Cursor: cursor,
+		Limit:  int32(limit),
+	})
 
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())

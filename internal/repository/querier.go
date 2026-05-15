@@ -42,6 +42,7 @@ type Querier interface {
 	GetOrderItemsByOrderID(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
 	GetOrdersByShopID(ctx context.Context, shopID uuid.UUID) ([]Order, error)
 	GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Order, error)
+	GetOrdersByUserIDWithCursor(ctx context.Context, arg GetOrdersByUserIDWithCursorParams) ([]Order, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
 	GetProductByIDAndShopOwner(ctx context.Context, arg GetProductByIDAndShopOwnerParams) (Product, error)
 	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)

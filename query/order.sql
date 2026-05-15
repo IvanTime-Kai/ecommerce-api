@@ -98,3 +98,10 @@ VALUES ($1, $2, $3);
 -- name: GetIdempotencyKey :one
 SELECT * FROM idempotency_keys
 WHERE key = $1 AND expires_at > NOW();
+
+-- name: GetOrdersByUserIDWithCursor :many
+SELECT * FROM orders
+WHERE user_id = $1
+  AND ($2 = '00000000-0000-0000-0000-000000000000'::uuid OR id < $2)
+ORDER BY id DESC
+LIMIT $3;

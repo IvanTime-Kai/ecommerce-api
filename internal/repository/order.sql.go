@@ -392,6 +392,54 @@ func (q *Queries) GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Or
 	return items, nil
 }
 
+const getOrdersByUserIDWithCursor = `-- name: GetOrdersByUserIDWithCursor :many
+SELECT id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at FROM orders
+WHERE user_id = $1
+  AND ($2 = '00000000-0000-0000-0000-000000000000'::uuid OR id < $2)
+ORDER BY id DESC
+LIMIT $3
+`
+
+type GetOrdersByUserIDWithCursorParams struct {
+	UserID  uuid.UUID   `json:"user_id"`
+	Column2 interface{} `json:"column_2"`
+	Limit   int32       `json:"limit"`
+}
+
+func (q *Queries) GetOrdersByUserIDWithCursor(ctx context.Context, arg GetOrdersByUserIDWithCursorParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersByUserIDWithCursor, arg.UserID, arg.Column2, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ShopID,
+			&i.Status,
+			&i.TotalAmount,
+			&i.ShippingFullName,
+			&i.ShippingPhone,
+			&i.ShippingProvince,
+			&i.ShippingDistrict,
+			&i.ShippingWard,
+			&i.ShippingStreet,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const shipOrder = `-- name: ShipOrder :one
 UPDATE orders SET status = 'shipping', updated_at = NOW()
 WHERE id = $1 RETURNING id, user_id, shop_id, status, total_amount, shipping_full_name, shipping_phone, shipping_province, shipping_district, shipping_ward, shipping_street, created_at, updated_at
