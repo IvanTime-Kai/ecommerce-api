@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
@@ -42,6 +43,11 @@ type GetOrdersByUserIDRequest struct {
 	OffSet     int        `json:"off_set"`
 	Limit      int        `json:"limit"`
 	NextCursor *uuid.UUID `json:"next_cursor"`
+}
+
+type GetRevenueSummaryRequest struct {
+	FromDate *time.Time
+	ToDate   *time.Time
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -259,13 +265,36 @@ func (h *OrderHandler) handleOrderAction(
 
 func (h *OrderHandler) GetRevenueSummary(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserIDFromContext(r)
-
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthorized")
 		return
 	}
 
-	revenue, err := h.service.GetRevenueSummary(r.Context(), userID)
+	var fromDate, toDate *time.Time
+
+	if fromDateStr := r.URL.Query().Get("from_date"); fromDateStr != "" {
+		t, err := time.Parse("2006-01-02", fromDateStr)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "INVALID_DATE", "invalid from_date format, use YYYY-MM-DD")
+			return
+		}
+		fromDate = &t
+	}
+
+	if toDateStr := r.URL.Query().Get("to_date"); toDateStr != "" {
+		t, err := time.Parse("2006-01-02", toDateStr)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "INVALID_DATE", "invalid to_date format, use YYYY-MM-DD")
+			return
+		}
+		toDate = &t
+	}
+
+	revenue, err := h.service.GetRevenueSummary(r.Context(), service.GetRevenueParams{
+		UserID:   userID,
+		FromDate: fromDate,
+		ToDate:   toDate,
+	})
 
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())

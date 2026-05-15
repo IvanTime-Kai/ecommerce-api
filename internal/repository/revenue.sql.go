@@ -16,8 +16,16 @@ const getRevenueSummary = `-- name: GetRevenueSummary :many
 SELECT date, total, order_count
 FROM revenue_summary
 WHERE shop_id = $1
+  AND ($2::date = '0001-01-01'::date OR date >= $2::date)
+  AND ($3::date = '0001-01-01'::date OR date <= $3::date)
 ORDER BY date DESC
 `
+
+type GetRevenueSummaryParams struct {
+	ShopID   uuid.UUID   `json:"shop_id"`
+	FromDate pgtype.Date `json:"from_date"`
+	ToDate   pgtype.Date `json:"to_date"`
+}
 
 type GetRevenueSummaryRow struct {
 	Date       pgtype.Date    `json:"date"`
@@ -25,8 +33,8 @@ type GetRevenueSummaryRow struct {
 	OrderCount int32          `json:"order_count"`
 }
 
-func (q *Queries) GetRevenueSummary(ctx context.Context, shopID uuid.UUID) ([]GetRevenueSummaryRow, error) {
-	rows, err := q.db.Query(ctx, getRevenueSummary, shopID)
+func (q *Queries) GetRevenueSummary(ctx context.Context, arg GetRevenueSummaryParams) ([]GetRevenueSummaryRow, error) {
+	rows, err := q.db.Query(ctx, getRevenueSummary, arg.ShopID, arg.FromDate, arg.ToDate)
 	if err != nil {
 		return nil, err
 	}

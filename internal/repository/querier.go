@@ -47,7 +47,7 @@ type Querier interface {
 	GetProductByIDAndShopOwner(ctx context.Context, arg GetProductByIDAndShopOwnerParams) (Product, error)
 	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)
 	GetProductsForOrder(ctx context.Context, arg GetProductsForOrderParams) ([]GetProductsForOrderRow, error)
-	GetRevenueSummary(ctx context.Context, shopID uuid.UUID) ([]GetRevenueSummaryRow, error)
+	GetRevenueSummary(ctx context.Context, arg GetRevenueSummaryParams) ([]GetRevenueSummaryRow, error)
 	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
 	GetShopByOwnerID(ctx context.Context, ownerID uuid.UUID) (Shop, error)
 	GetShopBySlug(ctx context.Context, slug string) (Shop, error)

@@ -67,6 +67,12 @@ type GetOrdersResponse struct {
 	NextCursor *uuid.UUID         `json:"next_cursor"`
 }
 
+type GetRevenueParams struct {
+	UserID   uuid.UUID
+	FromDate *time.Time
+	ToDate   *time.Time
+}
+
 func NewOrderService(repository repository.Querier, db *pgxpool.Pool, kafka kafka.KafkaProducer, cacheStock *cache.StockCache) *OrderService {
 	return &OrderService{
 		repository: repository,
@@ -441,11 +447,25 @@ func (s *OrderService) CancelOrder(ctx context.Context, req OrderActionParams) (
 	return &order, nil
 }
 
-func (s *OrderService) GetRevenueSummary(ctx context.Context, userID uuid.UUID) ([]repository.GetRevenueSummaryRow, error) {
-	shop, err := s.repository.GetShopByOwnerID(ctx, userID)
+func (s *OrderService) GetRevenueSummary(ctx context.Context, req GetRevenueParams) ([]repository.GetRevenueSummaryRow, error) {
+	shop, err := s.repository.GetShopByOwnerID(ctx, req.UserID)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.repository.GetRevenueSummary(ctx, shop.ID)
+	fromDate := pgtype.Date{Time: time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), Valid: true}
+	toDate := pgtype.Date{Time: time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC), Valid: true}
+
+	if req.FromDate != nil {
+		fromDate = pgtype.Date{Time: *req.FromDate, Valid: true}
+	}
+	if req.ToDate != nil {
+		toDate = pgtype.Date{Time: *req.ToDate, Valid: true}
+	}
+
+	return s.repository.GetRevenueSummary(ctx, repository.GetRevenueSummaryParams{
+		ShopID:   shop.ID,
+		FromDate: fromDate,
+		ToDate:   toDate,
+	})
 }

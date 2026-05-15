@@ -9,5 +9,7 @@ DO UPDATE SET
 -- name: GetRevenueSummary :many
 SELECT date, total, order_count
 FROM revenue_summary
-WHERE shop_id = $1
+WHERE shop_id = @shop_id
+  AND (@from_date::date = '0001-01-01'::date OR date >= @from_date::date)
+  AND (@to_date::date = '0001-01-01'::date OR date <= @to_date::date)
 ORDER BY date DESC;
