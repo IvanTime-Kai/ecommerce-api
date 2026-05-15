@@ -22,6 +22,7 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/go-chi/chi/v5"
 	middlewareChi "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -82,6 +83,7 @@ func main() {
 	r.Use(middlewareChi.Logger)
 	r.Use(middlewareChi.Recoverer)
 	r.Use(middlewareChi.Timeout(time.Duration(cfg.Server.RequestTimeout) * time.Second))
+	r.Use(middleware.PrometheusMiddleware)
 
 	q := repository.New(pool)
 
@@ -110,6 +112,9 @@ func main() {
 	}
 	orderService := service.NewOrderService(q, pool, cbProducer, stockCache)
 	orderHandler := handler.NewOrderHandler(orderService)
+
+	// METRICS
+	r.Handle("/metrics", promhttp.Handler())
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// AUTH

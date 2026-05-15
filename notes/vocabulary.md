@@ -16,6 +16,11 @@ Nhất quán ngay lập tức. Sau khi ghi xong, đọc ra data đúng ngay. Dù
 **Eventual Consistency**
 Nhất quán cuối cùng. Data sẽ đúng, nhưng không đúng ngay lập tức — có độ trễ nhỏ (vài ms đến vài giây). Chấp nhận được khi user không nhận ra sự khác biệt. Ví dụ: doanh thu báo cáo seller, số like trên Facebook.
 
+## O
+
+**Observability**
+Khả năng hiểu được trạng thái bên trong hệ thống thông qua output bên ngoài. Gồm 3 trụ cột: Metrics (số đo), Logs (sự kiện), Traces (theo dõi request). Giúp dev tìm ra vấn đề nhanh mà không cần SSH vào server.
+
 ## E
 
 **Equivalent to**
