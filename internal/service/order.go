@@ -211,11 +211,6 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		if err != nil {
 			return nil, err
 		}
-
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
 	}
 
 	user, err := s.repository.GetUserByID(ctx, req.UserID)
@@ -231,12 +226,28 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		TotalAmount: total,
 	}
 
-	responseBytes, _ := json.Marshal(order)
+	outboxID, _ := uuid.NewV7()
 	eventBytes, _ := json.Marshal(event)
 
-	go func() {
-		s.kafka.Publish(context.Background(), []byte(order.ID.String()), eventBytes)
-	}()
+	err = qtx.CreateOutboxEvent(ctx, repository.CreateOutboxEventParams{
+		ID:        outboxID,
+		EventType: kafka.TopicOrderCreated,
+		Payload:   eventBytes,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	// go func() {
+	// 	s.kafka.Publish(context.Background(), []byte(order.ID.String()), eventBytes)
+	// }()
+
+	responseBytes, _ := json.Marshal(order)
 
 	if req.IdempotencyKey != "" {
 

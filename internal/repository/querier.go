@@ -21,6 +21,7 @@ type Querier interface {
 	CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) error
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
+	CreateOutboxEvent(ctx context.Context, arg CreateOutboxEventParams) error
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateShop(ctx context.Context, arg CreateShopParams) (Shop, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -43,6 +44,7 @@ type Querier interface {
 	GetOrdersByShopID(ctx context.Context, shopID uuid.UUID) ([]Order, error)
 	GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetOrdersByUserIDWithCursor(ctx context.Context, arg GetOrdersByUserIDWithCursorParams) ([]Order, error)
+	GetPendingOutboxEvents(ctx context.Context) ([]Outbox, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
 	GetProductByIDAndShopOwner(ctx context.Context, arg GetProductByIDAndShopOwnerParams) (Product, error)
 	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)
@@ -57,6 +59,7 @@ type Querier interface {
 	GetUserMFAByUserID(ctx context.Context, userID uuid.UUID) (UserMfa, error)
 	GetUserPasswordHash(ctx context.Context, arg GetUserPasswordHashParams) (pgtype.Text, error)
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
+	MarkOutboxEventProcessed(ctx context.Context, id uuid.UUID) error
 	SetDefaultAddress(ctx context.Context, userID uuid.UUID) error
 	ShipOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	UpdateAddressDefault(ctx context.Context, id uuid.UUID) error

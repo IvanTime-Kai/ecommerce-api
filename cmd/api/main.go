@@ -20,6 +20,7 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/middleware"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/worker"
 	"github.com/go-chi/chi/v5"
 	middlewareChi "github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -100,6 +101,9 @@ func main() {
 	addressHandler := handler.NewAddressHandler(addressService)
 
 	stockCache := cache.NewStockCache(redis)
+
+	outboxWorker := worker.NewOutboxWorker(q, cbProducer, 5*time.Second)
+	go outboxWorker.Start(ctx)
 
 	// Load stock từ DB vào Redis
 

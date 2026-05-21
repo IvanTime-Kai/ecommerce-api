@@ -332,6 +332,15 @@ type OrderItem struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Outbox struct {
+	ID          uuid.UUID          `json:"id"`
+	EventType   string             `json:"event_type"`
+	Payload     []byte             `json:"payload"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	ProcessedAt pgtype.Timestamptz `json:"processed_at"`
+}
+
 type Product struct {
 	ID          uuid.UUID          `json:"id"`
 	ShopID      uuid.UUID          `json:"shop_id"`
