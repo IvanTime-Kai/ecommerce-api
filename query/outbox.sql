@@ -12,3 +12,8 @@ LIMIT 10;
 UPDATE outbox
 SET status = 'processed', processed_at = NOW()
 WHERE id = $1;
+
+-- name: MarkOutboxEventFailed :exec
+UPDATE outbox
+SET status = 'failed' WHERE id=$1;
+

@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
@@ -25,17 +26,28 @@ func NewOutboxWorker(dbURL string, repository repository.Querier, kafka kafka.Ka
 
 func (w *OutboxWorker) process(ctx context.Context) {
 	events, err := w.repository.GetPendingOutboxEvents(ctx)
-
 	if err != nil {
 		slog.Error("failed to get pending outbox events", "error", err)
 		return
 	}
 
 	for _, event := range events {
-		payload := event.Payload
+		var publishErr error
 
-		if err := w.kafka.Publish(ctx, []byte(event.ID.String()), payload); err != nil {
-			slog.Error("failed to publish outbox event", "id", event.ID, "error", err)
+		for attempt := 1; attempt <= 3; attempt++ {
+			publishErr = w.kafka.Publish(ctx, []byte(event.ID.String()), event.Payload)
+
+			if publishErr == nil {
+				break
+			}
+
+			slog.Warn("outbox: publish failed, retrying", "id", event.ID, "attempt", attempt, "error", publishErr)
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
+
+		if publishErr != nil {
+			slog.Error("outbox: publish failed after 3 attempts, marking as failed", "id", event.ID)
+			w.repository.MarkOutboxEventFailed(ctx, event.ID)
 			continue
 		}
 

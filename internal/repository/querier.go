@@ -59,6 +59,7 @@ type Querier interface {
 	GetUserMFAByUserID(ctx context.Context, userID uuid.UUID) (UserMfa, error)
 	GetUserPasswordHash(ctx context.Context, arg GetUserPasswordHashParams) (pgtype.Text, error)
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
+	MarkOutboxEventFailed(ctx context.Context, id uuid.UUID) error
 	MarkOutboxEventProcessed(ctx context.Context, id uuid.UUID) error
 	SetDefaultAddress(ctx context.Context, userID uuid.UUID) error
 	ShipOrder(ctx context.Context, id uuid.UUID) (Order, error)

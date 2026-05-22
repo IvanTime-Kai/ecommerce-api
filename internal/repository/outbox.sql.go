@@ -61,6 +61,16 @@ func (q *Queries) GetPendingOutboxEvents(ctx context.Context) ([]Outbox, error) 
 	return items, nil
 }
 
+const markOutboxEventFailed = `-- name: MarkOutboxEventFailed :exec
+UPDATE outbox
+SET status = 'failed' WHERE id=$1
+`
+
+func (q *Queries) MarkOutboxEventFailed(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markOutboxEventFailed, id)
+	return err
+}
+
 const markOutboxEventProcessed = `-- name: MarkOutboxEventProcessed :exec
 UPDATE outbox
 SET status = 'processed', processed_at = NOW()
