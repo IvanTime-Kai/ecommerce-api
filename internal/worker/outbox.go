@@ -3,23 +3,23 @@ package worker
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
+	"github.com/jackc/pgx/v5"
 )
 
 type OutboxWorker struct {
+	dbURL      string
 	repository repository.Querier
 	kafka      kafka.KafkaProducer
-	interval   time.Duration
 }
 
-func NewOutboxWorker(repository repository.Querier, kafka kafka.KafkaProducer, interval time.Duration) *OutboxWorker {
+func NewOutboxWorker(dbURL string, repository repository.Querier, kafka kafka.KafkaProducer) *OutboxWorker {
 	return &OutboxWorker{
+		dbURL:      dbURL,
 		repository: repository,
 		kafka:      kafka,
-		interval:   interval,
 	}
 }
 
@@ -46,16 +46,31 @@ func (w *OutboxWorker) process(ctx context.Context) {
 }
 
 func (w *OutboxWorker) Start(ctx context.Context) {
-	ticker := time.NewTicker(w.interval)
+	conn, err := pgx.Connect(ctx, w.dbURL)
 
-	defer ticker.Stop()
+	if err != nil {
+		slog.Error("outbox worker: failed to connect", "error", err)
+		return
+	}
+
+	defer conn.Close(ctx)
+
+	if _, err := conn.Exec(ctx, "LISTEN outbox_channel"); err != nil {
+		slog.Error("outbox worker: failed to listen", "error", err)
+		return
+	}
 
 	for {
-		select {
-		case <-ctx.Done():
+		_, err := conn.WaitForNotification(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+
+			slog.Error("outbox worker: notification error", "error", err)
 			return
-		case <-ticker.C:
-			w.process(ctx)
 		}
+
+		w.process(ctx)
 	}
 }

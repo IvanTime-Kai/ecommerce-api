@@ -102,7 +102,7 @@ func main() {
 
 	stockCache := cache.NewStockCache(redis)
 
-	outboxWorker := worker.NewOutboxWorker(q, cbProducer, 5*time.Second)
+	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, cbProducer)
 	go outboxWorker.Start(ctx)
 
 	// Load stock từ DB vào Redis
