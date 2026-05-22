@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -55,20 +54,25 @@ func main() {
 
 	defer kafkaProducer.Close()
 
-	kafkaConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicOrderCreated, kafka.GroupID)
+	paymentProducer, err := kafka.NewProducer(cfg.Kafka.Broker, kafka.TopicPaymentCompleted)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer paymentProducer.Close()
 
-	notificationService := service.NewNotificationService(&cfg.SMTP)
+	paymentService := service.NewPaymentService(paymentProducer)
 
-	go kafkaConsumer.Consume(ctx, func(key, value []byte) error {
-		slog.Info("received kafka message", "key", string(key))
+	paymentConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicOrderCreated, "payment-service")
+	go paymentConsumer.Consume(ctx, func(key, value []byte) error {
 		var event kafka.OrderCreatedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
 			return err
 		}
-		return notificationService.SendOrderConfirmation(event)
+
+		return paymentService.HandleOrderCreated(ctx, event)
 	})
 
-	defer kafkaConsumer.Close()
+	defer paymentConsumer.Close()
 
 	redis, err := cache.NewRedisClient(cfg.Redis.Url)
 
@@ -116,6 +120,24 @@ func main() {
 	}
 	orderService := service.NewOrderService(q, pool, cbProducer, stockCache)
 	orderHandler := handler.NewOrderHandler(orderService)
+
+	notificationService := service.NewNotificationService(&cfg.SMTP)
+
+	// Order consumer - lắng nghe payment.completed / payment.failed
+	orderEventConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "order-service-payment")
+	go orderEventConsumer.Consume(ctx, func(key, value []byte) error {
+		var event kafka.PaymentCompletedEvent
+		if err := json.Unmarshal(value, &event); err != nil {
+			return err
+		}
+		if err := orderService.HandlePaymentCompleted(ctx, event); err != nil {
+			return err
+		}
+
+		return notificationService.SendOrderConfirmation(event)
+	})
+
+	defer orderEventConsumer.Close()
 
 	// METRICS
 	r.Handle("/metrics", promhttp.Handler())

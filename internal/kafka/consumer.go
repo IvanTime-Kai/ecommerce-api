@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -18,6 +19,7 @@ func NewConsumer(brokerAddress, topic, groupID string) *Consumer {
 		GroupID:  groupID,
 		MinBytes: 10e3,
 		MaxBytes: 10e4,
+		MaxWait:  1 * time.Second,
 	})
 
 	return &Consumer{

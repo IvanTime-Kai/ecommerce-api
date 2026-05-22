@@ -480,3 +480,27 @@ func (s *OrderService) GetRevenueSummary(ctx context.Context, req GetRevenuePara
 		ToDate:   toDate,
 	})
 }
+
+func (s *OrderService) HandlePaymentCompleted(ctx context.Context, event kafka.PaymentCompletedEvent) error {
+	orderID, err := uuid.Parse(event.OrderID)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = s.repository.ConfirmOrder(ctx, orderID)
+
+	return err
+}
+
+func (s *OrderService) HandlePaymentFailed(ctx context.Context, event kafka.PaymentFailedEvent) error {
+	orderID, err := uuid.Parse(event.OrderID)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = s.repository.CancelOrder(ctx, orderID)
+
+	return err
+}

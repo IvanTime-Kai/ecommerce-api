@@ -27,7 +27,7 @@ func NewNotificationService(cfg *config.SMTPConfig) *NotificationService {
 	}
 }
 
-func (s *NotificationService) SendOrderConfirmation(event kafka.OrderCreatedEvent) error {
+func (s *NotificationService) SendOrderConfirmation(event kafka.PaymentCompletedEvent) error {
 	addr := fmt.Sprintf("%s:%d", s.smtpHost, s.smtpPort)
 
 	auth := smtp.PlainAuth("", s.smtpUsername, s.smtpPassword, s.smtpHost)
