@@ -43,3 +43,8 @@ func (s *StockCache) SetStock(ctx context.Context, productID string, stock int) 
 	key := fmt.Sprintf("stock:%s", productID)
 	return s.redis.Set(ctx, key, stock, 0).Err()
 }
+
+func (s *StockCache) RestoreStock(ctx context.Context, productID string, quantity int) error {
+	key := fmt.Sprintf("stock:%s", productID)
+	return s.redis.IncrBy(ctx, key, int64(quantity)).Err()
+}

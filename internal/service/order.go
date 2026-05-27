@@ -105,14 +105,22 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		return nil, ErrEmptyItems
 	}
 
+	var deductedItems []OrderItemInput
 	for _, item := range req.Items {
 		ok, err := s.cacheStock.DeductStock(ctx, item.ProductID.String(), item.Quantity)
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
+		if err != nil || !ok {
+			for _, d := range deductedItems {
+				s.cacheStock.RestoreStock(ctx, d.ProductID.String(), d.Quantity)
+			}
 			return nil, fmt.Errorf("%w: product %s", ErrOutOfStock, item.ProductID)
 		}
+		deductedItems = append(deductedItems, item)
+	}
+
+	user, err := s.repository.GetUserByID(ctx, req.UserID)
+
+	if err != nil {
+		return nil, err
 	}
 
 	tx, err := s.db.Begin(ctx)
@@ -122,6 +130,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	}
 
 	defer tx.Rollback(ctx)
+
+	restoreStock := func() {
+		for _, item := range req.Items {
+			s.cacheStock.RestoreStock(ctx, item.ProductID.String(), item.Quantity)
+		}
+	}
 
 	qtx := repository.New(tx)
 
@@ -136,10 +150,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	})
 
 	if err != nil {
+		restoreStock()
 		return nil, err
 	}
 
 	if len(products) != len(req.Items) {
+		restoreStock()
 		return nil, ErrInvalidProducts
 	}
 
@@ -157,6 +173,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	id, err := uuid.NewV7()
 
 	if err != nil {
+		restoreStock()
 		return nil, err
 	}
 
@@ -174,6 +191,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	})
 
 	if err != nil {
+		restoreStock()
 		return nil, err
 	}
 
@@ -183,6 +201,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		id, err := uuid.NewV7()
 
 		if err != nil {
+			restoreStock()
 			return nil, err
 		}
 
@@ -196,6 +215,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		})
 
 		if err != nil {
+			restoreStock()
 			return nil, err
 		}
 
@@ -205,18 +225,14 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 		})
 
 		if errors.Is(err, pgx.ErrNoRows) {
+			restoreStock()
 			return nil, fmt.Errorf("%w: product %s", ErrOutOfStock, product.ID)
 		}
 
 		if err != nil {
+			restoreStock()
 			return nil, err
 		}
-	}
-
-	user, err := s.repository.GetUserByID(ctx, req.UserID)
-
-	if err != nil {
-		return nil, err
 	}
 
 	event := kafka.OrderCreatedEvent{
@@ -236,10 +252,12 @@ func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderParams) (
 	})
 
 	if err != nil {
+		restoreStock()
 		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		restoreStock()
 		return nil, err
 	}
 
