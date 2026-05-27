@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -123,6 +124,8 @@ func main() {
 
 	notificationService := service.NewNotificationService(&cfg.SMTP)
 
+	idempotencyCache := cache.NewIdempotencyCache(redis, 24*time.Hour)
+
 	// Order consumer - lắng nghe payment.completed / payment.failed
 	orderEventConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "order-service-payment")
 	go orderEventConsumer.Consume(ctx, func(key, value []byte) error {
@@ -130,11 +133,31 @@ func main() {
 		if err := json.Unmarshal(value, &event); err != nil {
 			return err
 		}
+
+		processed, err := idempotencyCache.IsProcessed(ctx, kafka.TopicPaymentCompleted, event.OrderID)
+
+		if err != nil {
+			return err
+		}
+
+		if processed {
+			slog.Info("skipping duplicate event", "order_id", event.OrderID)
+			return nil
+		}
+
 		if err := orderService.HandlePaymentCompleted(ctx, event); err != nil {
 			return err
 		}
 
-		return notificationService.SendOrderConfirmation(event)
+		if err := idempotencyCache.MarkProcessed(ctx, kafka.TopicPaymentCompleted, event.OrderID); err != nil {
+			return err
+		}
+
+		if err := notificationService.SendOrderConfirmation(event); err != nil {
+			slog.Warn("failed to send order confirmation email", "order_id", event.OrderID, "error", err)
+		}
+
+		return nil
 	})
 
 	defer orderEventConsumer.Close()
