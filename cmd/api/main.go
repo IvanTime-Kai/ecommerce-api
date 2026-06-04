@@ -45,6 +45,13 @@ func main() {
 
 	defer pool.Close()
 
+	if err := kafka.CreateTopic(ctx, cfg.Kafka.Broker, kafka.TopicOrderCreated, 3); err != nil {
+		slog.Warn("create topic", "error", err)
+	}
+	if err := kafka.CreateTopic(ctx, cfg.Kafka.Broker, kafka.TopicPaymentCompleted, 3); err != nil {
+		slog.Warn("create topic", "error", err)
+	}
+
 	kafkaProducer, err := kafka.NewProducer(cfg.Kafka.Broker, kafka.TopicOrderCreated)
 
 	if err != nil {
@@ -63,16 +70,16 @@ func main() {
 
 	paymentService := service.NewPaymentService(paymentProducer)
 
-	paymentConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicOrderCreated, "payment-service")
-	go paymentConsumer.Consume(ctx, func(key, value []byte) error {
+	paymentConsumer := kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicOrderCreated, "payment-service", 3)
+	paymentConsumer.Consume(ctx, func(key, value []byte) error {
 		var event kafka.OrderCreatedEvent
+
 		if err := json.Unmarshal(value, &event); err != nil {
 			return err
 		}
 
 		return paymentService.HandleOrderCreated(ctx, event)
 	})
-
 	defer paymentConsumer.Close()
 
 	redis, err := cache.NewRedisClient(cfg.Redis.Url)
@@ -127,8 +134,8 @@ func main() {
 	idempotencyCache := cache.NewIdempotencyCache(redis, 24*time.Hour)
 
 	// Order consumer - lắng nghe payment.completed / payment.failed
-	orderEventConsumer := kafka.NewConsumer(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "order-service-payment")
-	go orderEventConsumer.Consume(ctx, func(key, value []byte) error {
+	orderEventConsumer := kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "order-service-payment", 3)
+	orderEventConsumer.Consume(ctx, func(key, value []byte) error {
 		var event kafka.PaymentCompletedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
 			return err
