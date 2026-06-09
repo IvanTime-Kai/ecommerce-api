@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
@@ -168,4 +169,51 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": "product deleted successfully"})
+}
+
+func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+
+	query := q.Get("q")
+
+	var categoryID uuid.UUID
+	if s := q.Get("category_id"); s != "" {
+		categoryID, _ = uuid.Parse(s)
+	}
+
+	var minPrice, maxPrice float64
+	if s := q.Get("min_price"); s != "" {
+		minPrice, _ = strconv.ParseFloat(s, 64)
+	}
+	if s := q.Get("max_price"); s != "" {
+		maxPrice, _ = strconv.ParseFloat(s, 64)
+	}
+
+	var cursor uuid.UUID
+	if s := q.Get("cursor"); s != "" {
+		cursor, _ = uuid.Parse(s)
+	}
+
+	limit := int32(20)
+	if s := q.Get("limit"); s != "" {
+		if v, err := strconv.Atoi(s); err == nil && v > 0 && v <= 100 {
+			limit = int32(v)
+		}
+	}
+
+	result, err := h.service.SearchProducts(r.Context(), service.SearchProductsParams{
+		Query:      query,
+		CategoryID: categoryID,
+		MinPrice:   minPrice,
+		MaxPrice:   maxPrice,
+		Cursor:     cursor,
+		Limit:      limit,
+	})
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": result})
 }

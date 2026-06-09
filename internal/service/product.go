@@ -39,6 +39,20 @@ type DeleteProductParams struct {
 	UserID uuid.UUID
 }
 
+type SearchProductsParams struct {
+	Query      string
+	CategoryID uuid.UUID
+	MinPrice   float64
+	MaxPrice   float64
+	Cursor     uuid.UUID
+	Limit      int32
+}
+
+type SearchProductsResponse struct {
+	Products   []repository.SearchProductsRow `json:"products"`
+	NextCursor *uuid.UUID                     `json:""next_cursor`
+}
+
 func NewProductService(repository repository.Querier, redis *redis.Client) *ProductService {
 	return &ProductService{
 		repository: repository,
@@ -161,4 +175,36 @@ func (s *ProductService) DeleteProduct(ctx context.Context, req DeleteProductPar
 	s.redis.Del(ctx, productCacheKey(req.ID))
 
 	return nil
+}
+
+func (s *ProductService) SearchProducts(ctx context.Context, req SearchProductsParams) (*SearchProductsResponse, error) {
+
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+
+	products, err := s.repository.SearchProducts(ctx, repository.SearchProductsParams{
+		Column1: req.Query,
+		Column2: req.CategoryID,
+		Column3: floatToNumeric(req.MinPrice),
+		Column4: floatToNumeric(req.MaxPrice),
+		Column5: req.Cursor,
+		Limit:   req.Limit,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var nextCursor *uuid.UUID
+
+	if len(products) == int(req.Limit) {
+		last := products[len(products)-1].ID
+		nextCursor = &last
+	}
+
+	return &SearchProductsResponse{
+		Products:   products,
+		NextCursor: nextCursor,
+	}, nil
 }

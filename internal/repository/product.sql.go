@@ -16,7 +16,7 @@ const createProduct = `-- name: CreateProduct :one
 INSERT INTO
   products (id, shop_id, name, description, price, stock)
 VALUES
-  ($1, $2, $3, $4, $5, $6) RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price
+  ($1, $2, $3, $4, $5, $6) RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price, category_id, search_vector
 `
 
 type CreateProductParams struct {
@@ -48,6 +48,8 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.UpdatedAt,
 		&i.Stock,
 		&i.Price,
+		&i.CategoryID,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -60,7 +62,7 @@ SET
   updated_at = NOW()
 WHERE
   id = $1
-  AND stock >= $2 RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price
+  AND stock >= $2 RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price, category_id, search_vector
 `
 
 type DeductProductStockParams struct {
@@ -81,6 +83,8 @@ func (q *Queries) DeductProductStock(ctx context.Context, arg DeductProductStock
 		&i.UpdatedAt,
 		&i.Stock,
 		&i.Price,
+		&i.CategoryID,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -101,7 +105,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllProducts = `-- name: GetAllProducts :many
-SELECT id, shop_id, name, description, status, created_at, updated_at, stock, price FROM products
+SELECT id, shop_id, name, description, status, created_at, updated_at, stock, price, category_id, search_vector FROM products
 `
 
 func (q *Queries) GetAllProducts(ctx context.Context) ([]Product, error) {
@@ -123,6 +127,8 @@ func (q *Queries) GetAllProducts(ctx context.Context) ([]Product, error) {
 			&i.UpdatedAt,
 			&i.Stock,
 			&i.Price,
+			&i.CategoryID,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +142,7 @@ func (q *Queries) GetAllProducts(ctx context.Context) ([]Product, error) {
 
 const getProductByID = `-- name: GetProductByID :one
 SELECT
-  id, shop_id, name, description, status, created_at, updated_at, stock, price
+  id, shop_id, name, description, status, created_at, updated_at, stock, price, category_id, search_vector
 FROM
   products
 WHERE
@@ -156,13 +162,15 @@ func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (Product, er
 		&i.UpdatedAt,
 		&i.Stock,
 		&i.Price,
+		&i.CategoryID,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const getProductByIDAndShopOwner = `-- name: GetProductByIDAndShopOwner :one
 SELECT
-  p.id, p.shop_id, p.name, p.description, p.status, p.created_at, p.updated_at, p.stock, p.price
+  p.id, p.shop_id, p.name, p.description, p.status, p.created_at, p.updated_at, p.stock, p.price, p.category_id, p.search_vector
 FROM
   products p
   JOIN shops s ON s.id = p.shop_id
@@ -189,13 +197,15 @@ func (q *Queries) GetProductByIDAndShopOwner(ctx context.Context, arg GetProduct
 		&i.UpdatedAt,
 		&i.Stock,
 		&i.Price,
+		&i.CategoryID,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const getProductsByShopID = `-- name: GetProductsByShopID :many
 SELECT
-  id, shop_id, name, description, status, created_at, updated_at, stock, price
+  id, shop_id, name, description, status, created_at, updated_at, stock, price, category_id, search_vector
 FROM
   products
 WHERE
@@ -222,6 +232,8 @@ func (q *Queries) GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]
 			&i.UpdatedAt,
 			&i.Stock,
 			&i.Price,
+			&i.CategoryID,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -290,6 +302,97 @@ func (q *Queries) GetProductsForOrder(ctx context.Context, arg GetProductsForOrd
 	return items, nil
 }
 
+const searchProducts = `-- name: SearchProducts :many
+SELECT
+  p.id,
+  p.shop_id,
+  p.category_id,
+  p.name,
+  p.description,
+  p.price,
+  p.stock,
+  p.status,
+  p.created_at,
+  p.updated_at,
+  s.name AS shop_name,
+  c.name AS category_name
+FROM products p
+JOIN shops s ON p.shop_id = s.id
+LEFT JOIN categories c ON p.category_id = c.id
+WHERE p.status = 'active'
+  AND ($1::text = '' OR p.search_vector @@ plainto_tsquery('english', $1))
+  AND ($2::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR p.category_id = $2)
+  AND ($3::numeric = 0 OR p.price >= $3)
+  AND ($4::numeric = 0 OR p.price <= $4)
+  AND ($5::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR p.id < $5)
+ORDER BY p.id DESC
+LIMIT $6
+`
+
+type SearchProductsParams struct {
+	Column1 string         `json:"column_1"`
+	Column2 uuid.UUID      `json:"column_2"`
+	Column3 pgtype.Numeric `json:"column_3"`
+	Column4 pgtype.Numeric `json:"column_4"`
+	Column5 uuid.UUID      `json:"column_5"`
+	Limit   int32          `json:"limit"`
+}
+
+type SearchProductsRow struct {
+	ID           uuid.UUID          `json:"id"`
+	ShopID       uuid.UUID          `json:"shop_id"`
+	CategoryID   pgtype.UUID        `json:"category_id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Price        pgtype.Numeric     `json:"price"`
+	Stock        int32              `json:"stock"`
+	Status       ProductStatus      `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	ShopName     string             `json:"shop_name"`
+	CategoryName pgtype.Text        `json:"category_name"`
+}
+
+func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error) {
+	rows, err := q.db.Query(ctx, searchProducts,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchProductsRow{}
+	for rows.Next() {
+		var i SearchProductsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShopID,
+			&i.CategoryID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Stock,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ShopName,
+			&i.CategoryName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateProduct = `-- name: UpdateProduct :one
 UPDATE
   products
@@ -299,7 +402,7 @@ SET
   status = $4,
   updated_at = NOW()
 WHERE
-  id = $1 RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price
+  id = $1 RETURNING id, shop_id, name, description, status, created_at, updated_at, stock, price, category_id, search_vector
 `
 
 type UpdateProductParams struct {
@@ -327,6 +430,8 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.UpdatedAt,
 		&i.Stock,
 		&i.Price,
+		&i.CategoryID,
+		&i.SearchVector,
 	)
 	return i, err
 }

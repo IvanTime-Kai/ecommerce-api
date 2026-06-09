@@ -18,6 +18,7 @@ type Querier interface {
 	CheckUserPhoneExists(ctx context.Context, phone pgtype.Text) (bool, error)
 	ConfirmOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	CreateAddress(ctx context.Context, arg CreateAddressParams) (Address, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) error
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
@@ -38,6 +39,7 @@ type Querier interface {
 	GetAddressByID(ctx context.Context, id uuid.UUID) (Address, error)
 	GetAddressesByUserID(ctx context.Context, userID uuid.UUID) (Address, error)
 	GetAllProducts(ctx context.Context) ([]Product, error)
+	GetCategories(ctx context.Context) ([]Category, error)
 	GetIdempotencyKey(ctx context.Context, key string) (IdempotencyKey, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
 	GetOrderItemsByOrderID(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
@@ -53,6 +55,7 @@ type Querier interface {
 	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
 	GetShopByOwnerID(ctx context.Context, ownerID uuid.UUID) (Shop, error)
 	GetShopBySlug(ctx context.Context, slug string) (Shop, error)
+	GetSubcategories(ctx context.Context, parentID pgtype.UUID) ([]Category, error)
 	GetUserByEmail(ctx context.Context, email pgtype.Text) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByPhone(ctx context.Context, phone pgtype.Text) (User, error)
@@ -61,6 +64,7 @@ type Querier interface {
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
 	MarkOutboxEventFailed(ctx context.Context, id uuid.UUID) error
 	MarkOutboxEventProcessed(ctx context.Context, id uuid.UUID) error
+	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error)
 	SetDefaultAddress(ctx context.Context, userID uuid.UUID) error
 	ShipOrder(ctx context.Context, id uuid.UUID) (Order, error)
 	UpdateAddressDefault(ctx context.Context, id uuid.UUID) error

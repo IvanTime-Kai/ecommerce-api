@@ -298,6 +298,14 @@ type AuthSession struct {
 	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type Category struct {
+	ID        uuid.UUID          `json:"id"`
+	ParentID  pgtype.UUID        `json:"parent_id"`
+	Name      string             `json:"name"`
+	Slug      string             `json:"slug"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type IdempotencyKey struct {
 	Key       string             `json:"key"`
 	Response  []byte             `json:"response"`
@@ -342,15 +350,17 @@ type Outbox struct {
 }
 
 type Product struct {
-	ID          uuid.UUID          `json:"id"`
-	ShopID      uuid.UUID          `json:"shop_id"`
-	Name        string             `json:"name"`
-	Description pgtype.Text        `json:"description"`
-	Status      ProductStatus      `json:"status"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	Stock       int32              `json:"stock"`
-	Price       pgtype.Numeric     `json:"price"`
+	ID           uuid.UUID          `json:"id"`
+	ShopID       uuid.UUID          `json:"shop_id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Status       ProductStatus      `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	Stock        int32              `json:"stock"`
+	Price        pgtype.Numeric     `json:"price"`
+	CategoryID   pgtype.UUID        `json:"category_id"`
+	SearchVector interface{}        `json:"search_vector"`
 }
 
 type RevenueSummary struct {

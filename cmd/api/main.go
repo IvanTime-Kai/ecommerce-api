@@ -109,6 +109,9 @@ func main() {
 	productService := service.NewProductService(q, redis)
 	productHandler := handler.NewProductHandler(productService)
 
+	categoryService := service.NewCategoryService(q)
+	categoryHandler := handler.NewCategoryHandler(categoryService)
+
 	addressService := service.NewAddressService(q, pool)
 	addressHandler := handler.NewAddressHandler(addressService)
 
@@ -178,6 +181,13 @@ func main() {
 		r.Post("/auth/register", userHandler.Register)
 		r.With(rateLimiter.Limit).Post("/auth/login", userHandler.Login)
 		r.Post("/auth/refresh-token", userHandler.RefreshToken)
+
+		// PRODUCT (public)
+		r.Get("/products", productHandler.ListProducts)
+
+		// CATEGORY (public)
+		r.Get("/categories", categoryHandler.GetCategories)
+		r.Get("/categories/{id}/subcategories", categoryHandler.GetSubCategories)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(cfg.JWT.ApiSecret))

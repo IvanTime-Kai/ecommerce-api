@@ -81,3 +81,29 @@ WHERE
 
 -- name: GetAllProducts :many
 SELECT * FROM products;
+
+-- name: SearchProducts :many
+SELECT
+  p.id,
+  p.shop_id,
+  p.category_id,
+  p.name,
+  p.description,
+  p.price,
+  p.stock,
+  p.status,
+  p.created_at,
+  p.updated_at,
+  s.name AS shop_name,
+  c.name AS category_name
+FROM products p
+JOIN shops s ON p.shop_id = s.id
+LEFT JOIN categories c ON p.category_id = c.id
+WHERE p.status = 'active'
+  AND ($1::text = '' OR p.search_vector @@ plainto_tsquery('english', $1))
+  AND ($2::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR p.category_id = $2)
+  AND ($3::numeric = 0 OR p.price >= $3)
+  AND ($4::numeric = 0 OR p.price <= $4)
+  AND ($5::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR p.id < $5)
+ORDER BY p.id DESC
+LIMIT $6;
