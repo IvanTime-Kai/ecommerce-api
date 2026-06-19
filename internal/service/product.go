@@ -14,8 +14,9 @@ import (
 )
 
 type ProductService struct {
-	repository repository.Querier
-	redis      *redis.Client
+	repository     repository.Querier // Primary — write
+	readRepository repository.Querier // Replica — read
+	redis          *redis.Client
 }
 
 type CreateProductParams struct {
@@ -53,10 +54,11 @@ type SearchProductsResponse struct {
 	NextCursor *uuid.UUID                     `json:""next_cursor`
 }
 
-func NewProductService(repository repository.Querier, redis *redis.Client) *ProductService {
+func NewProductService(repository repository.Querier, readRepository repository.Querier, redis *redis.Client) *ProductService {
 	return &ProductService{
-		repository: repository,
-		redis:      redis,
+		repository:     repository,
+		readRepository: readRepository,
+		redis:          redis,
 	}
 }
 
@@ -98,7 +100,7 @@ func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (repo
 	productCacheString, err := s.redis.Get(ctx, productCacheKey(id)).Result()
 
 	if err != nil {
-		product, err := s.repository.GetProductByID(ctx, id)
+		product, err := s.readRepository.GetProductByID(ctx, id)
 
 		if err != nil {
 			return repository.Product{}, err
@@ -117,7 +119,7 @@ func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (repo
 }
 
 func (s *ProductService) GetProductsByShopID(ctx context.Context, id uuid.UUID) ([]repository.Product, error) {
-	return s.repository.GetProductsByShopID(ctx, id)
+	return s.readRepository.GetProductsByShopID(ctx, id)
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, req UpdateProductParams) (*repository.Product, error) {
@@ -183,7 +185,7 @@ func (s *ProductService) SearchProducts(ctx context.Context, req SearchProductsP
 		req.Limit = 20
 	}
 
-	products, err := s.repository.SearchProducts(ctx, repository.SearchProductsParams{
+	products, err := s.readRepository.SearchProducts(ctx, repository.SearchProductsParams{
 		Column1: req.Query,
 		Column2: req.CategoryID,
 		Column3: floatToNumeric(req.MinPrice),

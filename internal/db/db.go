@@ -28,3 +28,15 @@ func Connect(url string) (*pgxpool.Pool, error) {
 
 	return conn, nil
 }
+
+func ConnectReplica(url string) (*pgxpool.Pool, error) {
+	config, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, err
+	}
+	config.MaxConns = 20
+	config.MinConns = 5
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 10 * time.Minute
+	return pgxpool.NewWithConfig(context.Background(), config)
+}

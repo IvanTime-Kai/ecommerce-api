@@ -45,6 +45,15 @@ func main() {
 
 	defer pool.Close()
 
+	// Sau pool, thêm replica pool
+	replicaPool, err := db.ConnectReplica(cfg.DB.ReplicaUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer replicaPool.Close()
+
+	replicaQuery := repository.New(replicaPool)
+
 	if err := kafka.CreateTopic(ctx, cfg.Kafka.Broker, kafka.TopicOrderCreated, 3); err != nil {
 		slog.Warn("create topic", "error", err)
 	}
@@ -106,7 +115,7 @@ func main() {
 	shopService := service.NewShopService(q)
 	shopHandler := handler.NewShopHandler(shopService)
 
-	productService := service.NewProductService(q, redis)
+	productService := service.NewProductService(q, replicaQuery, redis)
 	productHandler := handler.NewProductHandler(productService)
 
 	categoryService := service.NewCategoryService(q)

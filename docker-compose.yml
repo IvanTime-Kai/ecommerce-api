@@ -6,10 +6,48 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=123
       - POSTGRES_DB=ecommerce
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=3
+      -c max_replication_slots=3
+      -c hot_standby=on
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
+      - ./scripts/init-replication.sh:/docker-entrypoint-initdb.d/init-replication.sh
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  postgres-replica:
+    image: postgres:18-alpine
+    container_name: db-replica
+    user: postgres
+    environment:
+      - PGPASSWORD=123
+    command: >
+      bash -c "
+      until pg_basebackup -h postgres -U root -D /var/lib/postgresql/18/docker -P -R --wal-method=stream;
+      do echo 'waiting for primary...'; sleep 2; done &&
+      chmod 700 /var/lib/postgresql/18/docker &&
+      postgres -c hot_standby=on -D /var/lib/postgresql/18/docker
+      "
+    ports:
+      - "5433:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgreplicadata:/var/lib/postgresql
+    networks:
+      - dbnet      
 
   redis:
     image: redis:7-alpine
@@ -63,3 +101,8 @@ services:
 volumes:
   pgdata:
   kafkadata:
+  pgreplicadata:
+
+networks:
+  dbnet:
+    driver: bridge

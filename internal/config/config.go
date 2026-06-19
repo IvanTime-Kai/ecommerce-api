@@ -8,7 +8,8 @@ import (
 )
 
 type DBConfig struct {
-	Url string
+	Url        string `env:"DB_URL"`
+	ReplicaUrl string `env:"DB_REPLICA_URL"`
 }
 
 type RedisConfig struct {
@@ -72,6 +73,7 @@ func LoadConfig() (*Config, error) {
 	return &Config{
 		DB: DBConfig{
 			Url: os.Getenv("DB_URL"),
+			ReplicaUrl: os.Getenv("DB_REPLICA_URL"),
 		},
 		Redis: RedisConfig{
 			Url: os.Getenv("REDIS_URL"),
