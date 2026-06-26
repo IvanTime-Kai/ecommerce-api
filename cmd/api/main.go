@@ -115,9 +115,6 @@ func main() {
 	shopService := service.NewShopService(q)
 	shopHandler := handler.NewShopHandler(shopService)
 
-	productService := service.NewProductService(q, replicaQuery, redis)
-	productHandler := handler.NewProductHandler(productService)
-
 	categoryService := service.NewCategoryService(q)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 
@@ -125,12 +122,15 @@ func main() {
 	addressHandler := handler.NewAddressHandler(addressService)
 
 	stockCache := cache.NewStockCache(redis)
+	productCache := cache.NewProductCache(redis)
+
+	productService := service.NewProductService(q, replicaQuery, redis, stockCache, productCache)
+	productHandler := handler.NewProductHandler(productService)
 
 	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, cbProducer)
 	go outboxWorker.Start(ctx)
 
 	// Load stock từ DB vào Redis
-
 	products, err := repository.New(pool).GetAllProducts(ctx)
 	if err != nil {
 		log.Fatal(err)

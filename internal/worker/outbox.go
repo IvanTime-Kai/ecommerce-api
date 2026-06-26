@@ -78,32 +78,40 @@ func (w *OutboxWorker) publishEvent(ctx context.Context, event repository.Outbox
 	}
 }
 
-func (w *OutboxWorker) Start(ctx context.Context) {
+func (w *OutboxWorker) runOnce(ctx context.Context) error {
 	conn, err := pgx.Connect(ctx, w.dbURL)
 
 	if err != nil {
-		slog.Error("outbox worker: failed to connect", "error", err)
-		return
+		return err
 	}
 
 	defer conn.Close(ctx)
 
 	if _, err := conn.Exec(ctx, "LISTEN outbox_channel"); err != nil {
-		slog.Error("outbox worker: failed to listen", "error", err)
-		return
+		return err
 	}
+
+	w.process(ctx)
 
 	for {
 		_, err := conn.WaitForNotification(ctx)
 		if err != nil {
+			return nil
+		}
+
+		w.process(ctx)
+	}
+}
+
+func (w *OutboxWorker) Start(ctx context.Context) {
+	for {
+		if err := w.runOnce(ctx); err != nil {
 			if ctx.Err() != nil {
 				return
 			}
 
-			slog.Error("outbox worker: notification error", "error", err)
-			return
+			slog.Error("outbox worker: restarting", "error", err)
+			time.Sleep(5 * time.Second)
 		}
-
-		w.process(ctx)
 	}
 }

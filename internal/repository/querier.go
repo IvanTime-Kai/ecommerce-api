@@ -43,6 +43,7 @@ type Querier interface {
 	GetIdempotencyKey(ctx context.Context, key string) (IdempotencyKey, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
 	GetOrderItemsByOrderID(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
+	GetOrderItemsByOrderIDs(ctx context.Context, orderIds []uuid.UUID) ([]OrderItem, error)
 	GetOrdersByShopID(ctx context.Context, shopID uuid.UUID) ([]Order, error)
 	GetOrdersByUserID(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetOrdersByUserIDWithCursor(ctx context.Context, arg GetOrdersByUserIDWithCursorParams) ([]Order, error)

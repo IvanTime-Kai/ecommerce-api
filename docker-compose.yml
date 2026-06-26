@@ -25,7 +25,6 @@ services:
       timeout: 5s
       retries: 10
 
-
   postgres-replica:
     image: postgres:18-alpine
     container_name: db-replica
@@ -33,9 +32,11 @@ services:
     environment:
       - PGPASSWORD=123
     command: >
-      bash -c "
-      until pg_basebackup -h postgres -U root -D /var/lib/postgresql/18/docker -P -R --wal-method=stream;
-      do echo 'waiting for primary...'; sleep 2; done &&
+      sh -c "
+      if [ ! -f /var/lib/postgresql/18/docker/PG_VERSION ]; then
+        until pg_basebackup -h postgres -U root -D /var/lib/postgresql/18/docker -P -R --wal-method=stream;
+        do echo 'waiting for primary...'; sleep 2; done;
+      fi &&
       chmod 700 /var/lib/postgresql/18/docker &&
       postgres -c hot_standby=on -D /var/lib/postgresql/18/docker
       "
@@ -47,7 +48,7 @@ services:
     volumes:
       - pgreplicadata:/var/lib/postgresql
     networks:
-      - dbnet      
+      - dbnet
 
   redis:
     image: redis:7-alpine

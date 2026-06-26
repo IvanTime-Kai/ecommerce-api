@@ -62,9 +62,14 @@ type GetOrderParams struct {
 	Limit  int32
 }
 
+type OrderWithItems struct {
+	Order repository.Order       `json:"order"`
+	Items []repository.OrderItem `json:"items"`
+}
+
 type GetOrdersResponse struct {
-	Orders     []repository.Order `json:"orders"`
-	NextCursor *uuid.UUID         `json:"next_cursor"`
+	Orders     []OrderWithItems `json:"orders"`
+	NextCursor *uuid.UUID       `json:"next_cursor"`
 }
 
 type GetRevenueParams struct {
@@ -314,6 +319,35 @@ func (s *OrderService) GetOrdersByUserID(ctx context.Context, req GetOrderParams
 		return nil, err
 	}
 
+	// Batch fetch items
+	orderIDs := make([]uuid.UUID, len(orders))
+	for i, o := range orders {
+		orderIDs[i] = o.ID
+	}
+
+	items, err := s.repository.GetOrderItemsByOrderIDs(ctx, orderIDs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Groups items theo order_id
+	itemsByOrder := make(map[uuid.UUID][]repository.OrderItem)
+
+	for _, item := range items {
+		itemsByOrder[item.OrderID] = append(itemsByOrder[item.OrderID], item)
+	}
+
+	// Combine orders + items
+	ordersWithItems := make([]OrderWithItems, len(orders))
+
+	for i, o := range orders {
+		ordersWithItems[i] = OrderWithItems{
+			Order: o,
+			Items: itemsByOrder[o.ID],
+		}
+	}
+
 	var nextCursor *uuid.UUID
 
 	ordersLength := len(orders)
@@ -324,7 +358,7 @@ func (s *OrderService) GetOrdersByUserID(ctx context.Context, req GetOrderParams
 	}
 
 	return &GetOrdersResponse{
-		Orders:     orders,
+		Orders:     ordersWithItems,
 		NextCursor: nextCursor,
 	}, nil
 }

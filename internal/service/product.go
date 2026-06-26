@@ -5,18 +5,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/sync/singleflight"
 )
 
 type ProductService struct {
 	repository     repository.Querier // Primary — write
 	readRepository repository.Querier // Replica — read
 	redis          *redis.Client
+	stockCache     *cache.StockCache
+	productCache   *cache.ProductCache
+	sfGroup        singleflight.Group
 }
 
 type CreateProductParams struct {
@@ -51,14 +57,16 @@ type SearchProductsParams struct {
 
 type SearchProductsResponse struct {
 	Products   []repository.SearchProductsRow `json:"products"`
-	NextCursor *uuid.UUID                     `json:""next_cursor`
+	NextCursor *uuid.UUID                     `json:"next_cursor`
 }
 
-func NewProductService(repository repository.Querier, readRepository repository.Querier, redis *redis.Client) *ProductService {
+func NewProductService(repository repository.Querier, readRepository repository.Querier, redis *redis.Client, stockCache *cache.StockCache, productCache *cache.ProductCache) *ProductService {
 	return &ProductService{
 		repository:     repository,
 		readRepository: readRepository,
 		redis:          redis,
+		stockCache:     stockCache,
+		productCache:   productCache,
 	}
 }
 
@@ -90,6 +98,11 @@ func (s *ProductService) CreateProduct(ctx context.Context, req CreateProductPar
 
 	if err != nil {
 		return nil, err
+	}
+
+	s.stockCache.SetStock(ctx, id.String(), int(req.Stock))
+	if err := s.invalidateProductCache(ctx); err != nil {
+		slog.Warn("failed to invalidate product cache", "error", err)
 	}
 
 	return &product, nil
@@ -149,6 +162,9 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req UpdateProductPar
 	}
 
 	s.redis.Del(ctx, productCacheKey(req.ID))
+	if err := s.invalidateProductCache(ctx); err != nil {
+		slog.Warn("failed to invalidate product cache", "error", err)
+	}
 
 	return &product, nil
 }
@@ -175,6 +191,9 @@ func (s *ProductService) DeleteProduct(ctx context.Context, req DeleteProductPar
 	}
 
 	s.redis.Del(ctx, productCacheKey(req.ID))
+	if err := s.invalidateProductCache(ctx); err != nil {
+		slog.Warn("failed to invalidate product cache", "error", err)
+	}
 
 	return nil
 }
@@ -185,6 +204,71 @@ func (s *ProductService) SearchProducts(ctx context.Context, req SearchProductsP
 		req.Limit = 20
 	}
 
+	cacheKey := fmt.Sprintf("products:q=%s:cat=%s:min=%s:max=%s:cursor=%s:limit=%d",
+		req.Query,
+		req.CategoryID.String(),
+		fmt.Sprintf("%.0f", req.MinPrice),
+		fmt.Sprintf("%.0f", req.MaxPrice),
+		req.Cursor.String(),
+		req.Limit,
+	)
+
+	// check cache
+	cached, err := s.redis.Get(ctx, cacheKey).Bytes()
+
+	if err == nil {
+		var resp SearchProductsResponse
+		if err := json.Unmarshal(cached, &resp); err == nil {
+			return &resp, nil
+		}
+	} else if err != redis.Nil {
+		slog.Warn("redis unavailable, falling back to DB", "error", err)
+
+		return s.queryProducts(ctx, SearchProductsParams{
+			Query:      req.Query,
+			CategoryID: req.CategoryID,
+			MinPrice:   req.MinPrice,
+			MaxPrice:   req.MaxPrice,
+			Cursor:     req.Cursor,
+			Limit:      req.Limit,
+		})
+	}
+
+	// cache miss => query DB
+	result, err, _ := s.sfGroup.Do(cacheKey, func() (any, error) {
+		resp, err := s.queryProducts(ctx, SearchProductsParams{
+			Query:      req.Query,
+			CategoryID: req.CategoryID,
+			MinPrice:   req.MinPrice,
+			MaxPrice:   req.MaxPrice,
+			Cursor:     req.Cursor,
+			Limit:      req.Limit,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		// set cache TTL 5 minutes
+		if data, err := json.Marshal(resp); err == nil {
+			s.redis.Set(ctx, cacheKey, data, 5*time.Minute)
+		}
+
+		return resp, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*SearchProductsResponse), nil
+}
+
+func (s *ProductService) invalidateProductCache(ctx context.Context) error {
+	return s.productCache.DeleteByPattern(ctx, "products:*")
+}
+
+func (s *ProductService) queryProducts(ctx context.Context, req SearchProductsParams) (*SearchProductsResponse, error) {
 	products, err := s.readRepository.SearchProducts(ctx, repository.SearchProductsParams{
 		Column1: req.Query,
 		Column2: req.CategoryID,
@@ -205,8 +289,10 @@ func (s *ProductService) SearchProducts(ctx context.Context, req SearchProductsP
 		nextCursor = &last
 	}
 
-	return &SearchProductsResponse{
+	resp := &SearchProductsResponse{
 		Products:   products,
 		NextCursor: nextCursor,
-	}, nil
+	}
+
+	return resp, nil
 }

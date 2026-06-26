@@ -105,3 +105,7 @@ WHERE user_id = $1
   AND ($2 = '00000000-0000-0000-0000-000000000000'::uuid OR id < $2)
 ORDER BY id DESC
 LIMIT $3;
+
+-- name: GetOrderItemsByOrderIDs :many
+SELECT * FROM order_items 
+WHERE order_id = ANY(@order_ids::uuid[]);
