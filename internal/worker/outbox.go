@@ -6,8 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -15,13 +17,17 @@ type OutboxWorker struct {
 	dbURL      string
 	repository repository.Querier
 	kafka      kafka.KafkaProducer
+	lockCache  *cache.LockCache
+	instanceID string
 }
 
-func NewOutboxWorker(dbURL string, repository repository.Querier, kafka kafka.KafkaProducer) *OutboxWorker {
+func NewOutboxWorker(dbURL string, repository repository.Querier, kafka kafka.KafkaProducer, lockCache *cache.LockCache) *OutboxWorker {
 	return &OutboxWorker{
 		dbURL:      dbURL,
 		repository: repository,
 		kafka:      kafka,
+		lockCache:  lockCache,
+		instanceID: uuid.NewString(),
 	}
 }
 
@@ -91,7 +97,10 @@ func (w *OutboxWorker) runOnce(ctx context.Context) error {
 		return err
 	}
 
-	w.process(ctx)
+	if w.lockCache.AcquireLock(ctx, "lock:outbox", w.instanceID, 30*time.Second) {
+		w.process(ctx)
+		w.lockCache.ReleaseLock(ctx, "lock:outbox", w.instanceID)
+	}
 
 	for {
 		_, err := conn.WaitForNotification(ctx)
@@ -99,7 +108,10 @@ func (w *OutboxWorker) runOnce(ctx context.Context) error {
 			return nil
 		}
 
-		w.process(ctx)
+		if w.lockCache.AcquireLock(ctx, "lock:outbox", w.instanceID, 30*time.Second) {
+			w.process(ctx)
+			w.lockCache.ReleaseLock(ctx, "lock:outbox", w.instanceID)
+		}
 	}
 }
 

@@ -127,7 +127,8 @@ func main() {
 	productService := service.NewProductService(q, replicaQuery, redis, stockCache, productCache)
 	productHandler := handler.NewProductHandler(productService)
 
-	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, cbProducer)
+	lockCache := cache.NewLockCache(redis)
+	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, cbProducer, lockCache)
 	go outboxWorker.Start(ctx)
 
 	// Load stock từ DB vào Redis
