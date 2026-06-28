@@ -109,31 +109,47 @@ func (s *ProductService) CreateProduct(ctx context.Context, req CreateProductPar
 	return &product, nil
 }
 
-func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (repository.Product, error) {
+func (s *ProductService) GetProductByID(ctx context.Context, id uuid.UUID) (*repository.Product, error) {
 
 	productCacheString, err := s.redis.Get(ctx, productCacheKey(id)).Result()
 
 	if err != nil {
 		product, err := s.readRepository.GetProductByID(ctx, id)
 
+		if err != nil && isConnectionErr(err) {
+			slog.Warn("replica unavailable, falling back to primary", "error", err)
+			product, err = s.repository.GetProductByID(ctx, id)
+		}
+
 		if err != nil {
-			return repository.Product{}, err
+			return nil, err
 		}
 
 		productBytes, _ := json.Marshal(product)
 		s.redis.Set(ctx, productCacheKey(id), productBytes, time.Hour)
 
-		return product, nil
+		return &product, nil
 	}
 	var productCache repository.Product
 
 	json.Unmarshal([]byte(productCacheString), &productCache)
 
-	return productCache, nil
+	return &productCache, nil
 }
 
 func (s *ProductService) GetProductsByShopID(ctx context.Context, id uuid.UUID) ([]repository.Product, error) {
-	return s.readRepository.GetProductsByShopID(ctx, id)
+	product, err := s.readRepository.GetProductsByShopID(ctx, id)
+
+	if err != nil && isConnectionErr(err) {
+		slog.Warn("replica unavailable, falling back to primary", "error", err)
+		product, err = s.repository.GetProductsByShopID(ctx, id)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return product, err
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, req UpdateProductParams) (*repository.Product, error) {
