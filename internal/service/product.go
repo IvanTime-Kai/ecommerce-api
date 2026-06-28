@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
@@ -278,6 +279,18 @@ func (s *ProductService) queryProducts(ctx context.Context, req SearchProductsPa
 		Limit:   req.Limit,
 	})
 
+	if err != nil && isConnectionErr(err) {
+		slog.Warn("replica unavailable, falling back to primary", "error", err)
+		products, err = s.repository.SearchProducts(ctx, repository.SearchProductsParams{
+			Column1: req.Query,
+			Column2: req.CategoryID,
+			Column3: floatToNumeric(req.MinPrice),
+			Column4: floatToNumeric(req.MaxPrice),
+			Column5: req.Cursor,
+			Limit:   req.Limit,
+		})
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -295,4 +308,9 @@ func (s *ProductService) queryProducts(ctx context.Context, req SearchProductsPa
 	}
 
 	return resp, nil
+}
+
+func isConnectionErr(err error) bool {
+	var netErr *net.OpError
+	return errors.As(err, &netErr)
 }
