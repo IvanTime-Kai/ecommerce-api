@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
 	"github.com/google/uuid"
@@ -134,8 +133,8 @@ func (s *AddressService) DeleteAddress(ctx context.Context, req DeleteAddressPar
 	}
 
 	if address.UserID != req.UserID {
-		return fmt.Errorf("forbidden")
+		return ErrForbidden
 	}
-	
+
 	return s.repository.DeleteAddress(ctx, req.ID)
 }

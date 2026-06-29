@@ -58,7 +58,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *ProductHandler) GetProductByID(w http.ResponseWriter, r *http.Request) 
 	product, err := h.service.GetProductByID(r.Context(), id)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *ProductHandler) GetProductsByShopID(w http.ResponseWriter, r *http.Requ
 	products, err := h.service.GetProductsByShopID(r.Context(), id)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -164,7 +164,7 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -211,7 +211,7 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 

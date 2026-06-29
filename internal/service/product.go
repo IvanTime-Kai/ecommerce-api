@@ -160,7 +160,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, req UpdateProductPar
 	})
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("forbidden")
+		return nil, ErrForbidden
 	}
 
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *ProductService) DeleteProduct(ctx context.Context, req DeleteProductPar
 	})
 
 	if errors.Is(err, pgx.ErrNoRows) {
-		return fmt.Errorf("forbidden")
+		return ErrForbidden
 	}
 
 	if err != nil {

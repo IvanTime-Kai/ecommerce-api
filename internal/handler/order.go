@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -89,22 +88,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		if errors.Is(err, service.ErrEmptyItems) {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
-			return
-		}
-
-		if errors.Is(err, service.ErrInvalidProducts) {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
-			return
-		}
-
-		if errors.Is(err, service.ErrOutOfStock) {
-			writeError(w, http.StatusConflict, "OUT_OF_STOCK", err.Error())
-			return
-		}
-
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -123,7 +107,7 @@ func (h *OrderHandler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 	order, err := h.service.GetOrderByID(r.Context(), id)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -159,7 +143,7 @@ func (h *OrderHandler) GetOrdersByUserID(w http.ResponseWriter, r *http.Request)
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -177,7 +161,7 @@ func (h *OrderHandler) GetOrdersByShopID(w http.ResponseWriter, r *http.Request)
 	orders, err := h.service.GetOrdersByShopID(r.Context(), userID)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -250,13 +234,7 @@ func (h *OrderHandler) handleOrderAction(
 
 	order, err := action(id)
 	if err != nil {
-
-		if errors.Is(err, service.ErrInvalidTransition) {
-			writeError(w, http.StatusConflict, "INVALID_TRANSITION", err.Error())
-			return
-		}
-
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -297,7 +275,7 @@ func (h *OrderHandler) GetRevenueSummary(w http.ResponseWriter, r *http.Request)
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 

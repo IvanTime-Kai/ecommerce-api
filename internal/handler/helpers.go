@@ -2,9 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/middleware"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/google/uuid"
 )
 
@@ -38,4 +40,23 @@ func getUserIDFromContext(r *http.Request) (uuid.UUID, bool) {
 	}
 
 	return userID, true
+}
+
+func handleError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, service.ErrOutOfStock):
+		writeError(w, http.StatusConflict, "OUT_OF_STOCK", err.Error())
+	case errors.Is(err, service.ErrEmptyItems):
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+	case errors.Is(err, service.ErrInvalidProducts):
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+	case errors.Is(err, service.ErrInvalidTransition):
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+	case errors.Is(err, service.ErrNotFound):
+		writeError(w, http.StatusNotFound, "NOT_FOUND", err.Error())
+	case errors.Is(err, service.ErrForbidden):
+		writeError(w, http.StatusForbidden, "FORBIDDEN", err.Error())
+	default:
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
+	}
 }

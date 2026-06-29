@@ -385,7 +385,7 @@ func (s *OrderService) ConfirmOrder(ctx context.Context, req OrderActionParams) 
 	}
 
 	if order.ShopID != shop.ID {
-		return nil, fmt.Errorf("forbidden")
+		return nil, ErrForbidden
 	}
 
 	if order.Status != repository.OrderStatusPending {
@@ -415,7 +415,7 @@ func (s *OrderService) ShipOrder(ctx context.Context, req OrderActionParams) (*r
 	}
 
 	if order.ShopID != shop.ID {
-		return nil, fmt.Errorf("forbidden")
+		return nil, ErrForbidden
 	}
 
 	if order.Status != repository.OrderStatusConfirmed {
@@ -445,7 +445,7 @@ func (s *OrderService) DeliverOrder(ctx context.Context, req OrderActionParams) 
 	}
 
 	if order.ShopID != shop.ID {
-		return nil, fmt.Errorf("forbidden")
+		return nil, ErrForbidden
 	}
 
 	if order.Status != repository.OrderStatusShipping {
@@ -494,7 +494,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, req OrderActionParams) (
 	}
 
 	if order.UserID != req.UserID {
-		return nil, fmt.Errorf("forbidden")
+		return nil, ErrForbidden
 	}
 
 	if order.Status != repository.OrderStatusPending && order.Status != repository.OrderStatusConfirmed {
