@@ -129,7 +129,7 @@ func main() {
 
 	lockCache := cache.NewLockCache(redis)
 	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, cbProducer, lockCache)
-	go outboxWorker.Start(ctx)
+	outboxWorker.Start(ctx)
 
 	// Load stock từ DB vào Redis
 	products, err := repository.New(pool).GetAllProducts(ctx)
@@ -257,12 +257,18 @@ func main() {
 
 	log.Println("Shutting down server...")
 
+	cancel()
+
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Duration(cfg.Server.RequestTimeout)*time.Second)
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
+
+	paymentConsumer.Wait()
+	orderEventConsumer.Wait()
+	outboxWorker.Wait()
 
 	log.Println("Server exited")
 }

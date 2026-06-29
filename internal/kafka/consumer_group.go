@@ -2,10 +2,12 @@ package kafka
 
 import (
 	"context"
+	"sync"
 )
 
 type ConsumerGroup struct {
 	consumer []*Consumer
+	wg       sync.WaitGroup
 }
 
 func NewConsumerGroup(brokerAddress, topic, groupID string, size int) *ConsumerGroup {
@@ -20,7 +22,11 @@ func NewConsumerGroup(brokerAddress, topic, groupID string, size int) *ConsumerG
 
 func (g *ConsumerGroup) Consume(ctx context.Context, handler func(key, value []byte) error) {
 	for _, c := range g.consumer {
-		go c.Consume(ctx, handler)
+		g.wg.Add(1)
+		go func(c *Consumer) {
+			defer g.wg.Done()
+			c.Consume(ctx, handler)
+		}(c)
 	}
 }
 
@@ -28,4 +34,8 @@ func (g *ConsumerGroup) Close() {
 	for _, c := range g.consumer {
 		c.Close()
 	}
+}
+
+func (g *ConsumerGroup) Wait() {
+	g.wg.Wait()
 }

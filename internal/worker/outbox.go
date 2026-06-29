@@ -19,6 +19,7 @@ type OutboxWorker struct {
 	kafka      kafka.KafkaProducer
 	lockCache  *cache.LockCache
 	instanceID string
+	wg         sync.WaitGroup
 }
 
 func NewOutboxWorker(dbURL string, repository repository.Querier, kafka kafka.KafkaProducer, lockCache *cache.LockCache) *OutboxWorker {
@@ -116,14 +117,26 @@ func (w *OutboxWorker) runOnce(ctx context.Context) error {
 }
 
 func (w *OutboxWorker) Start(ctx context.Context) {
-	for {
-		if err := w.runOnce(ctx); err != nil {
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		for {
+			if err := w.runOnce(ctx); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+
+				slog.Error("outbox worker: restarting", "error", err)
+				time.Sleep(5 * time.Second)
+			}
+
 			if ctx.Err() != nil {
 				return
 			}
-
-			slog.Error("outbox worker: restarting", "error", err)
-			time.Sleep(5 * time.Second)
 		}
-	}
+	}()
+}
+
+func (w *OutboxWorker) Wait() {
+	w.wg.Wait()
 }
