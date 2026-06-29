@@ -22,7 +22,7 @@ func (h *CategoryHandler) GetCategories(w http.ResponseWriter, r *http.Request) 
 	categories, err := h.service.GetCategories(r.Context())
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": categories})
@@ -39,7 +39,7 @@ func (h *CategoryHandler) GetSubCategories(w http.ResponseWriter, r *http.Reques
 	categories, err := h.service.GetSubCategories(r.Context(), id)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": categories})

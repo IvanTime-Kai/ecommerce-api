@@ -60,7 +60,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	user, err := h.service.GetProfile(r.Context(), userID)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -162,7 +162,7 @@ func (h *UserHandler) EnableMFA(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.EnableMFA(r.Context(), userID)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -185,7 +185,7 @@ func (h *UserHandler) VerifyMFA(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.VerifyMFA(r.Context(), userID, req.OTP); err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 

@@ -56,7 +56,7 @@ func (h *AddressHandler) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *AddressHandler) GetAddressByID(w http.ResponseWriter, r *http.Request) 
 	address, err := h.service.GetAddressByID(r.Context(), id)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *AddressHandler) SetDefaultAddress(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -134,7 +134,7 @@ func (h *AddressHandler) DeleteAddress(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 

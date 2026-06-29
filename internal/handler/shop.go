@@ -48,7 +48,7 @@ func (h *ShopHandler) CreateShop(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *ShopHandler) GetMyShop(w http.ResponseWriter, r *http.Request) {
 	shop, err := h.service.GetShopByOwnerID(r.Context(), userID)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *ShopHandler) GetShopByID(w http.ResponseWriter, r *http.Request) {
 	shop, err := h.service.GetShopByID(r.Context(), id)
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleError(w, err)
 		return
 	}
 
