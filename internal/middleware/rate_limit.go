@@ -56,3 +56,36 @@ func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (rl *RateLimiter) LimitByUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		userIDStr, ok := ctx.Value(UserIDKey).(string)
+
+		var key string
+		if ok && userIDStr != "" {
+			key = fmt.Sprintf("rate_limit:user:%s", userIDStr)
+		} else {
+			ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+			key = fmt.Sprintf("rate_limit:%s", ip)
+		}
+
+		now := time.Now().UnixMilli()
+		windowStart := now - rl.window.Milliseconds()
+
+		rl.redis.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart))
+
+		count, _ := rl.redis.ZCard(ctx, key).Result()
+
+		if count >= int64(rl.limit) {
+			http.Error(w, `{"error":{"code":"RATE_LIMIT_EXCEEDED","message":"too many requests"}}`, http.StatusTooManyRequests)
+			return
+		}
+
+		rl.redis.ZAdd(ctx, key, redis.Z{Score: float64(now), Member: now})
+		rl.redis.Expire(ctx, key, rl.window)
+
+		next.ServeHTTP(w, r)
+	})
+}

@@ -187,10 +187,10 @@ func main() {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// AUTH
-		r.Post("/auth/logout", userHandler.Logout)
-		r.Post("/auth/register", userHandler.Register)
+		r.With(rateLimiter.Limit).Post("/auth/logout", userHandler.Logout)
 		r.With(rateLimiter.Limit).Post("/auth/login", userHandler.Login)
-		r.Post("/auth/refresh-token", userHandler.RefreshToken)
+		r.With(rateLimiter.Limit).Post("/auth/register", userHandler.Register)
+		r.With(rateLimiter.Limit).Post("/auth/refresh-token", userHandler.RefreshToken)
 
 		// PRODUCT (public)
 		r.Get("/products", productHandler.ListProducts)
@@ -201,6 +201,7 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.AuthMiddleware(cfg.JWT.ApiSecret))
+			r.Use(rateLimiter.LimitByUser)
 
 			// USER
 			r.Get("/user/profile", userHandler.GetProfile)
