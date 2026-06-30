@@ -106,6 +106,8 @@ func main() {
 	r.Use(middlewareChi.Recoverer)
 	r.Use(middlewareChi.Timeout(time.Duration(cfg.Server.RequestTimeout) * time.Second))
 	r.Use(middleware.PrometheusMiddleware)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RequestLogger)
 
 	q := repository.New(pool)
 
