@@ -182,6 +182,11 @@ func main() {
 
 	defer orderEventConsumer.Close()
 
+	healthHandler := handler.NewHealthHandler(pool, redis, cfg.Kafka.Broker)
+
+	// HEALTH
+	r.Get("/health", healthHandler.Check)
+
 	// METRICS
 	r.Handle("/metrics", promhttp.Handler())
 
