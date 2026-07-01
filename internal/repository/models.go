@@ -370,6 +370,16 @@ type RevenueSummary struct {
 	OrderCount int32          `json:"order_count"`
 }
 
+type Review struct {
+	ID        uuid.UUID          `json:"id"`
+	OrderID   uuid.UUID          `json:"order_id"`
+	ProductID uuid.UUID          `json:"product_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Rating    int32              `json:"rating"`
+	Comment   pgtype.Text        `json:"comment"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Shop struct {
 	ID          uuid.UUID          `json:"id"`
 	OwnerID     uuid.UUID          `json:"owner_id"`

@@ -24,6 +24,7 @@ type Querier interface {
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
 	CreateOutboxEvent(ctx context.Context, arg CreateOutboxEventParams) error
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	CreateReview(ctx context.Context, arg CreateReviewParams) (Review, error)
 	CreateShop(ctx context.Context, arg CreateShopParams) (Shop, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAuth(ctx context.Context, arg CreateUserAuthParams) (UserAuth, error)
@@ -53,6 +54,8 @@ type Querier interface {
 	GetProductsByShopID(ctx context.Context, shopID uuid.UUID) ([]Product, error)
 	GetProductsForOrder(ctx context.Context, arg GetProductsForOrderParams) ([]GetProductsForOrderRow, error)
 	GetRevenueSummary(ctx context.Context, arg GetRevenueSummaryParams) ([]GetRevenueSummaryRow, error)
+	GetReviewByOrderAndProduct(ctx context.Context, arg GetReviewByOrderAndProductParams) (Review, error)
+	GetReviewsByProductID(ctx context.Context, arg GetReviewsByProductIDParams) ([]GetReviewsByProductIDRow, error)
 	GetSessionByRefreshTokenHash(ctx context.Context, refreshTokenHash string) (AuthSession, error)
 	GetShopByOwnerID(ctx context.Context, ownerID uuid.UUID) (Shop, error)
 	GetShopBySlug(ctx context.Context, slug string) (Shop, error)

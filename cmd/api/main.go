@@ -144,6 +144,9 @@ func main() {
 	orderService := service.NewOrderService(q, pool, cbProducer, stockCache)
 	orderHandler := handler.NewOrderHandler(orderService)
 
+	reviewService := service.NewReviewService(q)
+	reviewHandler := handler.NewReviewHandler(reviewService)
+
 	notificationService := service.NewNotificationService(&cfg.SMTP)
 
 	idempotencyCache := cache.NewIdempotencyCache(redis, 24*time.Hour)
@@ -202,6 +205,9 @@ func main() {
 		// PRODUCT (public)
 		r.Get("/products", productHandler.ListProducts)
 
+		// REVIEW (public)
+		r.Get("/products/{id}/reviews", reviewHandler.GetReviewsByProductID)
+
 		// CATEGORY (public)
 		r.Get("/categories", categoryHandler.GetCategories)
 		r.Get("/categories/{id}/subcategories", categoryHandler.GetSubCategories)
@@ -243,6 +249,10 @@ func main() {
 			r.Get("/orders/shop", orderHandler.GetOrdersByShopID)
 			r.Get("/orders/{id}", orderHandler.GetOrderByID)
 			r.Get("/orders/revenue-summary", orderHandler.GetRevenueSummary)
+
+			// REVIEW
+			r.Post("/reviews", reviewHandler.CreateReview)
+
 		})
 	})
 

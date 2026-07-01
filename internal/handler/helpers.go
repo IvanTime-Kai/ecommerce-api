@@ -56,6 +56,10 @@ func handleError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", err.Error())
 	case errors.Is(err, service.ErrForbidden):
 		writeError(w, http.StatusForbidden, "FORBIDDEN", err.Error())
+	case errors.Is(err, service.ErrAlreadyReviewed):
+		writeError(w, http.StatusConflict, "ALREADY_REVIEWED", err.Error())
+	case errors.Is(err, service.ErrOrderNotDelivered):
+		writeError(w, http.StatusBadRequest, "ORDER_NOT_DELIVERED", err.Error())
 	default:
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error")
 	}
