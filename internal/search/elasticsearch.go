@@ -34,14 +34,15 @@ type SearchResult struct {
 }
 
 type ProductHit struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price"`
-	Stock       int     `json:"stock"`
-	ShopID      string  `json:"shop_id"`
-	Status      string  `json:"status"`
-	Score       float64 `json:"score"`
+	ID          string              `json:"id"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Price       float64             `json:"price"`
+	Stock       int                 `json:"stock"`
+	ShopID      string              `json:"shop_id"`
+	Status      string              `json:"status"`
+	Score       float64             `json:"score"`
+	Highlight   map[string][]string `json:"highlight,omitempty"`
 }
 
 type esSearchResponse struct {
@@ -50,8 +51,9 @@ type esSearchResponse struct {
 			Value int `json:"value"`
 		} `json:"total"`
 		Hits []struct {
-			Score  float64        `json:"_score"`
-			Source map[string]any `json:"_source"`
+			Score     float64             `json:"_score"`
+			Source    map[string]any      `json:"_source"`
+			Highlight map[string][]string `json:"highlight"`
 		} `json:"hits"`
 	}
 }
@@ -136,6 +138,12 @@ func buildQuery(params SearchParams) map[string]any {
 				"filter": filter,
 			},
 		},
+		"highlight": map[string]any{
+			"fields": map[string]any{
+				"name":        map[string]any{},
+				"description": map[string]any{},
+			},
+		},
 	}
 }
 
@@ -165,6 +173,9 @@ func toSearchResult(esResp esSearchResponse) *SearchResult {
 		}
 		if v, ok := h.Source["status"].(string); ok {
 			hit.Status = v
+		}
+		if h.Highlight != nil {
+			hit.Highlight = h.Highlight
 		}
 		hits = append(hits, hit)
 	}
