@@ -39,13 +39,18 @@ type SMTPConfig struct {
 	Password string
 }
 
+type ElasticsearchConfig struct {
+	URL string
+}
+
 type Config struct {
-	DB     DBConfig
-	Redis  RedisConfig
-	Server ServerConfig
-	JWT    JWTConfig
-	Kafka  KafkaConfig
-	SMTP   SMTPConfig
+	DB            DBConfig
+	Redis         RedisConfig
+	Server        ServerConfig
+	JWT           JWTConfig
+	Kafka         KafkaConfig
+	SMTP          SMTPConfig
+	Elasticsearch ElasticsearchConfig
 }
 
 func LoadConfig() (*Config, error) {
@@ -72,7 +77,7 @@ func LoadConfig() (*Config, error) {
 
 	return &Config{
 		DB: DBConfig{
-			Url: os.Getenv("DB_URL"),
+			Url:        os.Getenv("DB_URL"),
 			ReplicaUrl: os.Getenv("DB_REPLICA_URL"),
 		},
 		Redis: RedisConfig{
@@ -96,6 +101,9 @@ func LoadConfig() (*Config, error) {
 			Port:     os.Getenv("SMTP_PORT"),
 			Username: os.Getenv("SMTP_USERNAME"),
 			Password: os.Getenv("SMTP_PASSWORD"),
+		},
+		Elasticsearch: ElasticsearchConfig{
+			URL: os.Getenv("ELASTICSEARCH_URL"),
 		},
 	}, nil
 }

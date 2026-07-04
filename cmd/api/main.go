@@ -19,6 +19,7 @@ import (
 	"github.com/Ivantime-Kai/ecommerce-api/internal/kafka"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/middleware"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/search"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/worker"
 	"github.com/go-chi/chi/v5"
@@ -129,6 +130,9 @@ func main() {
 	productService := service.NewProductService(q, replicaQuery, redis, stockCache, productCache)
 	productHandler := handler.NewProductHandler(productService)
 
+	esClient := search.NewClient(cfg.Elasticsearch.URL)
+	searchHandler := handler.NewSearchHandler(esClient)
+
 	lockCache := cache.NewLockCache(redis)
 	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, cbProducer, lockCache)
 	outboxWorker.Start(ctx)
@@ -204,6 +208,7 @@ func main() {
 
 		// PRODUCT (public)
 		r.Get("/products", productHandler.ListProducts)
+		r.Get("/products/search", searchHandler.SearchProducts)
 
 		// REVIEW (public)
 		r.Get("/products/{id}/reviews", reviewHandler.GetReviewsByProductID)

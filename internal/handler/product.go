@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/repository"
+	"github.com/Ivantime-Kai/ecommerce-api/internal/search"
 	"github.com/Ivantime-Kai/ecommerce-api/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -15,10 +16,8 @@ type ProductHandler struct {
 	service *service.ProductService
 }
 
-func NewProductHandler(service *service.ProductService) *ProductHandler {
-	return &ProductHandler{
-		service: service,
-	}
+type SearchHandler struct {
+	client *search.Client
 }
 
 type CreateProductRequest struct {
@@ -32,6 +31,16 @@ type UpdateProductRequest struct {
 	Name        string                   `json:"name"`
 	Description *string                  `json:"description"`
 	Status      repository.ProductStatus `json:"status"`
+}
+
+func NewProductHandler(service *service.ProductService) *ProductHandler {
+	return &ProductHandler{
+		service: service,
+	}
+}
+
+func NewSearchHandler(client *search.Client) *SearchHandler {
+	return &SearchHandler{client: client}
 }
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -212,6 +221,39 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		handleError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": result})
+}
+
+func (h *SearchHandler) SearchProducts(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+
+	var minPrice, maxPrice float64
+	if v := r.URL.Query().Get("min_price"); v != "" {
+		minPrice, _ = strconv.ParseFloat(v, 64)
+	}
+	if v := r.URL.Query().Get("max_price"); v != "" {
+		maxPrice, _ = strconv.ParseFloat(v, 64)
+	}
+
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	size := 10
+
+	result, err := h.client.SearchProducts(r.Context(), search.SearchParams{
+		Query:    q,
+		MinPrice: minPrice,
+		MaxPrice: maxPrice,
+		From:     (page - 1) * size,
+		Size:     size,
+	})
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "SEARCH_FAILED", "search failed")
 		return
 	}
 
