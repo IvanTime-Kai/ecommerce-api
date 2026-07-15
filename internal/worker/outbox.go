@@ -16,17 +16,17 @@ import (
 type OutboxWorker struct {
 	dbURL      string
 	repository repository.Querier
-	kafka      kafka.KafkaProducer
+	producers  map[string]kafka.KafkaProducer
 	lockCache  *cache.LockCache
 	instanceID string
 	wg         sync.WaitGroup
 }
 
-func NewOutboxWorker(dbURL string, repository repository.Querier, kafka kafka.KafkaProducer, lockCache *cache.LockCache) *OutboxWorker {
+func NewOutboxWorker(dbURL string, repository repository.Querier, producers map[string]kafka.KafkaProducer, lockCache *cache.LockCache) *OutboxWorker {
 	return &OutboxWorker{
 		dbURL:      dbURL,
 		repository: repository,
-		kafka:      kafka,
+		producers:  producers,
 		lockCache:  lockCache,
 		instanceID: uuid.NewString(),
 	}
@@ -61,10 +61,17 @@ func (w *OutboxWorker) process(ctx context.Context) {
 }
 
 func (w *OutboxWorker) publishEvent(ctx context.Context, event repository.Outbox) {
+	producer, ok := w.producers[event.EventType]
+	if !ok {
+		slog.Error("outbox: unknown event type, marking as failed", "event_type", event.EventType, "id", event.ID)
+		w.repository.MarkOutboxEventFailed(ctx, event.ID)
+		return
+	}
+
 	var publishErr error
 
 	for attempt := 1; attempt <= 3; attempt++ {
-		publishErr = w.kafka.Publish(ctx, []byte(event.ID.String()), event.Payload)
+		publishErr = producer.Publish(ctx, []byte(event.ID.String()), event.Payload)
 
 		if publishErr == nil {
 			break
