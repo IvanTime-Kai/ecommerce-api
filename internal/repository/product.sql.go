@@ -302,6 +302,24 @@ func (q *Queries) GetProductsForOrder(ctx context.Context, arg GetProductsForOrd
 	return items, nil
 }
 
+const restoreProductStock = `-- name: RestoreProductStock :exec
+UPDATE products
+SET
+  stock = stock + $2,
+  updated_at = NOW()
+WHERE id = $1
+`
+
+type RestoreProductStockParams struct {
+	ID    uuid.UUID `json:"id"`
+	Stock int32     `json:"stock"`
+}
+
+func (q *Queries) RestoreProductStock(ctx context.Context, arg RestoreProductStockParams) error {
+	_, err := q.db.Exec(ctx, restoreProductStock, arg.ID, arg.Stock)
+	return err
+}
+
 const searchProducts = `-- name: SearchProducts :many
 SELECT
   p.id,

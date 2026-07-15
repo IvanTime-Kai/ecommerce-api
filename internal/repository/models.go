@@ -58,11 +58,12 @@ func (ns NullMethodType) Value() (driver.Value, error) {
 type OrderStatus string
 
 const (
-	OrderStatusPending   OrderStatus = "pending"
-	OrderStatusConfirmed OrderStatus = "confirmed"
-	OrderStatusShipping  OrderStatus = "shipping"
-	OrderStatusDelivered OrderStatus = "delivered"
-	OrderStatusCancelled OrderStatus = "cancelled"
+	OrderStatusPending    OrderStatus = "pending"
+	OrderStatusConfirmed  OrderStatus = "confirmed"
+	OrderStatusShipping   OrderStatus = "shipping"
+	OrderStatusDelivered  OrderStatus = "delivered"
+	OrderStatusCancelled  OrderStatus = "cancelled"
+	OrderStatusCancelling OrderStatus = "cancelling"
 )
 
 func (e *OrderStatus) Scan(src interface{}) error {

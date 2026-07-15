@@ -79,6 +79,13 @@ WHERE
   id = $1
   AND stock >= $2 RETURNING *;
 
+-- name: RestoreProductStock :exec
+UPDATE products
+SET
+  stock = stock + $2,
+  updated_at = NOW()
+WHERE id = $1;
+
 -- name: GetAllProducts :many
 SELECT * FROM products;
 

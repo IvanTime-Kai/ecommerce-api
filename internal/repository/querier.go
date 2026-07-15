@@ -68,6 +68,7 @@ type Querier interface {
 	GetUserTOTPSecret(ctx context.Context, userID uuid.UUID) (string, error)
 	MarkOutboxEventFailed(ctx context.Context, id uuid.UUID) error
 	MarkOutboxEventProcessed(ctx context.Context, id uuid.UUID) error
+	RestoreProductStock(ctx context.Context, arg RestoreProductStockParams) error
 	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error)
 	SetDefaultAddress(ctx context.Context, userID uuid.UUID) error
 	ShipOrder(ctx context.Context, id uuid.UUID) (Order, error)

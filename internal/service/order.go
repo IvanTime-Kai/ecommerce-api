@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/Ivantime-Kai/ecommerce-api/internal/cache"
@@ -533,7 +534,7 @@ func (s *OrderService) GetRevenueSummary(ctx context.Context, req GetRevenuePara
 	})
 }
 
-func (s *OrderService) HandlePaymentCompleted(ctx context.Context, event kafka.PaymentCompletedEvent) error {
+func (s *OrderService) HandleInventoryReserved(ctx context.Context, event kafka.InventoryReservedEvent) error {
 	orderID, err := uuid.Parse(event.OrderID)
 
 	if err != nil {
@@ -541,18 +542,30 @@ func (s *OrderService) HandlePaymentCompleted(ctx context.Context, event kafka.P
 	}
 
 	_, err = s.repository.ConfirmOrder(ctx, orderID)
-
 	return err
+}
+
+func (s *OrderService) HandleInventoryFailed(ctx context.Context, event kafka.InventoryFailedEvent) error {
+	orderID, err := uuid.Parse(event.OrderID)
+	if err != nil {
+		return err
+	}
+	slog.Warn("inventory failed, cancelling order", "order_id", event.OrderID, "reason", event.Reason)
+	_, err = s.repository.CancelOrder(ctx, orderID)
+	return err
+}
+
+func (s *OrderService) HandlePaymentCompleted(ctx context.Context, event kafka.PaymentCompletedEvent) error {
+	slog.Info("payment completed, waiting for inventory", "order_id", event.OrderID)
+	return nil
 }
 
 func (s *OrderService) HandlePaymentFailed(ctx context.Context, event kafka.PaymentFailedEvent) error {
 	orderID, err := uuid.Parse(event.OrderID)
-
 	if err != nil {
 		return err
 	}
-
+	slog.Warn("payment failed, cancelling order", "order_id", event.OrderID, "reason", event.Reason)
 	_, err = s.repository.CancelOrder(ctx, orderID)
-
 	return err
 }

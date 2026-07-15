@@ -9,12 +9,14 @@ import (
 )
 
 type PaymentService struct {
-	producer kafka.KafkaProducer
+	producer       kafka.KafkaProducer
+	refundProducer kafka.KafkaProducer
 }
 
-func NewPaymentService(producer kafka.KafkaProducer) *PaymentService {
+func NewPaymentService(producer kafka.KafkaProducer, refundProducer kafka.KafkaProducer) *PaymentService {
 	return &PaymentService{
-		producer: producer,
+		producer:       producer,
+		refundProducer: refundProducer,
 	}
 }
 
@@ -36,4 +38,12 @@ func (s *PaymentService) HandleOrderCreated(ctx context.Context, event kafka.Ord
 
 	slog.Info("payment: completed", "order_id", event.OrderID)
 	return nil
+}
+
+func (s *PaymentService) HandleInventoryFailed(ctx context.Context, event kafka.InventoryFailedEvent) error {
+	slog.Warn("inventory failed, refunding payment", "order_id", event.OrderID)
+
+	refundEvent := kafka.PaymentRefundEvent{OrderID: event.OrderID}
+	payload, _ := json.Marshal(refundEvent)
+	return s.refundProducer.Publish(ctx, []byte(event.OrderID), payload)
 }
