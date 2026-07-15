@@ -60,6 +60,7 @@ type Consumers struct {
 	inventoryFailed        *kafka.ConsumerGroup
 	orderEvent             *kafka.ConsumerGroup
 	paymentFailed          *kafka.ConsumerGroup
+	paymentRefund          *kafka.ConsumerGroup
 }
 
 func setupConsumers(
@@ -86,6 +87,15 @@ func setupConsumers(
 			return err
 		}
 		return paymentSvc.HandleOrderCreated(ctx, event)
+	})
+
+	c.paymentRefund = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentRefund, "refund-service", 3, dlqProducer)
+	c.paymentRefund.Consume(ctx, func(key, value []byte) error {
+		var event kafka.PaymentRefundEvent
+		if err := json.Unmarshal(value, &event); err != nil {
+			return err
+		}
+		return paymentSvc.HandleRefund(ctx, event)
 	})
 
 	c.inventoryFailedPayment = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryFailed, "payment-service-refund", 3, dlqProducer)
@@ -170,6 +180,7 @@ func (c *Consumers) Close() {
 	c.inventoryFailed.Close()
 	c.orderEvent.Close()
 	c.paymentFailed.Close()
+	c.paymentRefund.Close()
 }
 
 func (c *Consumers) Wait() {
@@ -180,4 +191,6 @@ func (c *Consumers) Wait() {
 	c.inventoryFailed.Wait()
 	c.orderEvent.Wait()
 	c.paymentFailed.Wait()
+	c.paymentRefund.Wait()
+
 }

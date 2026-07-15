@@ -10,39 +10,36 @@
     --ink: #1c1d1a;
     --ink-dim: #5b5c54;
     --line: #ddd9cd;
-    --pg: #2f6f4f;      /* postgres / outbox */
-    --kafka: #b5651d;   /* kafka topics */
-    --svc: #35507a;     /* services / consumers */
+    --pg: #2f6f4f;
+    --kafka: #b5651d;
+    --svc: #35507a;
     --warn-bg: #fbeee0;
     --warn-line: #c98a3e;
+    --ok-bg: #eaf3ee;
+    --ok-line: #2f6f4f;
     --code-bg: #eeece3;
     --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #17181a;
-      --surface: #1f2123;
-      --ink: #e9e8e2;
-      --ink-dim: #a3a299;
-      --line: #34363a;
-      --pg: #5fae82;
-      --kafka: #d99150;
-      --svc: #7ea3d8;
-      --warn-bg: #2a2418;
-      --warn-line: #8a6229;
-      --code-bg: #26282b;
+      --bg: #17181a; --surface: #1f2123; --ink: #e9e8e2; --ink-dim: #a3a299;
+      --line: #34363a; --pg: #5fae82; --kafka: #d99150; --svc: #7ea3d8;
+      --warn-bg: #2a2418; --warn-line: #8a6229; --code-bg: #26282b;
+      --ok-bg: #1a2e22; --ok-line: #5fae82;
     }
   }
   :root[data-theme="dark"] {
     --bg: #17181a; --surface: #1f2123; --ink: #e9e8e2; --ink-dim: #a3a299;
     --line: #34363a; --pg: #5fae82; --kafka: #d99150; --svc: #7ea3d8;
     --warn-bg: #2a2418; --warn-line: #8a6229; --code-bg: #26282b;
+    --ok-bg: #1a2e22; --ok-line: #5fae82;
   }
   :root[data-theme="light"] {
     --bg: #f6f5f1; --surface: #ffffff; --ink: #1c1d1a; --ink-dim: #5b5c54;
     --line: #ddd9cd; --pg: #2f6f4f; --kafka: #b5651d; --svc: #35507a;
     --warn-bg: #fbeee0; --warn-line: #c98a3e; --code-bg: #eeece3;
+    --ok-bg: #eaf3ee; --ok-line: #2f6f4f;
   }
 
   * { box-sizing: border-box; }
@@ -50,7 +47,7 @@
     background: var(--bg);
     color: var(--ink);
     font-family: var(--font-body);
-    max-width: 920px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 48px 24px 80px;
     line-height: 1.55;
@@ -63,119 +60,70 @@
     text-transform: uppercase;
     color: var(--svc);
   }
-  h1 {
-    font-size: 28px;
-    margin: 6px 0 4px;
-    letter-spacing: -0.01em;
-    text-wrap: balance;
-  }
-  .sub {
-    color: var(--ink-dim);
-    font-size: 15px;
-    margin: 0 0 32px;
-    max-width: 62ch;
-  }
+  h1 { font-size: 28px; margin: 6px 0 4px; letter-spacing: -0.01em; text-wrap: balance; }
+  .sub { color: var(--ink-dim); font-size: 15px; margin: 0 0 32px; max-width: 62ch; }
 
   h2 {
-    font-size: 15px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--ink-dim);
-    border-top: 1px solid var(--line);
-    padding-top: 28px;
-    margin: 40px 0 16px;
+    font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-dim); border-top: 1px solid var(--line);
+    padding-top: 28px; margin: 40px 0 16px;
   }
 
   .legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    margin-bottom: 20px;
-    font-family: var(--font-mono);
-    font-size: 12.5px;
+    display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 20px;
+    font-family: var(--font-mono); font-size: 12.5px;
   }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
   .diagram {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 20px;
-    overflow-x: auto;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 20px; overflow-x: auto;
   }
-  .diagram pre.mermaid {
-    margin: 0;
-    min-width: 760px;
-  }
+  .diagram pre.mermaid { margin: 0; min-width: 820px; }
 
-  .steps {
-    display: grid;
-    gap: 10px;
-    counter-reset: step;
-  }
+  .steps { display: grid; gap: 10px; counter-reset: step; }
   .step {
-    display: grid;
-    grid-template-columns: 28px 1fr;
-    gap: 12px;
-    padding: 12px 14px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 8px;
+    display: grid; grid-template-columns: 28px 1fr; gap: 12px;
+    padding: 12px 14px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px;
   }
   .step .n {
-    counter-increment: step;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--ink-dim);
+    counter-increment: step; font-family: var(--font-mono);
+    font-size: 12px; color: var(--ink-dim);
   }
   .step .n::before { content: counter(step); }
   .step code {
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    background: var(--code-bg);
-    padding: 1px 5px;
-    border-radius: 4px;
+    font-family: var(--font-mono); font-size: 12.5px;
+    background: var(--code-bg); padding: 1px 5px; border-radius: 4px;
   }
   .step .file {
-    display: block;
-    margin-top: 3px;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    color: var(--ink-dim);
+    display: block; margin-top: 3px; font-family: var(--font-mono);
+    font-size: 11.5px; color: var(--ink-dim);
   }
 
   .callout {
+    border: 1px solid var(--warn-line); border-left: 3px solid var(--warn-line);
+    border-radius: 8px; padding: 16px 18px; font-size: 14px;
     background: var(--warn-bg);
-    border: 1px solid var(--warn-line);
-    border-left: 3px solid var(--warn-line);
-    border-radius: 8px;
-    padding: 16px 18px;
-    font-size: 14px;
+  }
+  .callout.ok {
+    border-color: var(--ok-line); background: var(--ok-bg);
   }
   .callout .tag {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--warn-line);
-    display: block;
-    margin-bottom: 6px;
+    font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--warn-line); display: block; margin-bottom: 6px;
   }
+  .callout.ok .tag { color: var(--ok-line); }
   .callout code {
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    background: rgba(0,0,0,0.06);
-    padding: 1px 5px;
-    border-radius: 4px;
+    font-family: var(--font-mono); font-size: 12.5px;
+    background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px;
   }
-  :root[data-theme="dark"] .callout code,
-  @media (prefers-color-scheme: dark) { .callout code { background: rgba(255,255,255,0.08); } }
 </style>
 </head>
 <body>
 
-<p class="eyebrow">ecommerce-api · internal/worker, internal/kafka, internal/service</p>
+<p class="eyebrow">ecommerce-api · internal/app, internal/worker, internal/kafka, internal/service</p>
 <h1>Event-driven flow: Order Created</h1>
 <p class="sub">
   Full path từ <code style="font-family:var(--font-mono)">POST /v1/orders</code> qua outbox pattern,
@@ -205,10 +153,11 @@ flowchart TD
     F --> G{"Redis lock\nlock:outbox, TTL 30s"}:::svc
     G -- "busy → skip" --> F
     G -- "acquired" --> H["fetch ≤10 pending rows\nfan out to 5 goroutines"]:::pg
-    H --> I["publishEvent()\nretry x3, linear backoff"]:::svc
+    H --> I["publishEvent()\npick producer by event_type\nretry x3, linear backoff"]:::svc
     I --> J["CircuitBreakerProducer\n(gobreaker, trips @5 fails)"]:::svc
     J --> K(["order.created"]):::kafka
-    I -- "3 fails" --> M["MarkOutboxEventFailed"]:::pg
+    I -- "unknown event_type" --> MF["MarkOutboxEventFailed"]:::pg
+    I -- "3 fails" --> MF
     I -- "ok" --> L["MarkOutboxEventProcessed"]:::pg
 
     K --> N["payment-service\nHandleOrderCreated"]:::svc
@@ -226,8 +175,15 @@ flowchart TD
     R --> W["payment-service-refund\npublish payment.refund"]:::svc
     W --> X(["payment.refund"]):::kafka
 
-    X -.-> Y["(no consumer wired\nfor payment.refund yet)"]:::warn
-    Z(["payment.failed"]):::kafka -.-> ZZ["order-service-payment-failed\ncancel order"]:::svc
+    X --> AA["refund-service\nHandleRefund"]:::svc
+    Z(["payment.failed"]):::kafka --> ZZ["order-service-payment-failed\ncancel order"]:::svc
+    AA -- "retry x3 fail" --> DLQ
+
+    N -- "retry x3 fail" --> DLQ(["dead-letter-queue"]):::kafka
+    P -- "retry x3 fail" --> DLQ
+    S -- "retry x3 fail" --> DLQ
+    U -- "retry x3 fail" --> DLQ
+    V -- "retry x3 fail" --> DLQ
 
     classDef pg fill:#eaf3ee,stroke:#2f6f4f,color:#1c1d1a,stroke-width:1px;
     classDef kafka fill:#fbeee0,stroke:#b5651d,color:#1c1d1a,stroke-width:1px;
@@ -240,7 +196,7 @@ flowchart TD
 <div class="steps">
   <div class="step"><span class="n"></span><div>
     <code>OrderService.CreateOrder</code> tạo order + trừ stock + insert 1 row vào bảng <code>outbox</code>, tất cả trong cùng 1 transaction.
-    <span class="file">internal/service/order.go:91-286</span>
+    <span class="file">internal/service/order.go</span>
   </div></div>
   <div class="step"><span class="n"></span><div>
     Trigger Postgres tự <code>pg_notify('outbox_channel', id)</code> ngay khi row outbox được insert — worker không cần polling liên tục.
@@ -248,37 +204,41 @@ flowchart TD
   </div></div>
   <div class="step"><span class="n"></span><div>
     <code>OutboxWorker</code> nhận notification, giành Redis lock <code>lock:outbox</code> (30s TTL) để đảm bảo chỉ 1 instance xử lý batch tại một thời điểm, rồi fan-out cho 5 goroutine.
-    <span class="file">internal/worker/outbox.go:35-117</span>
+    <span class="file">internal/worker/outbox.go</span>
   </div></div>
   <div class="step"><span class="n"></span><div>
-    Publish qua <code>CircuitBreakerProducer</code> (gobreaker, trip sau 5 lần fail liên tiếp, timeout 30s), retry tối đa 3 lần trước khi mark <code>failed</code>.
-    <span class="file">internal/kafka/circuit_breaker.go, internal/worker/outbox.go:63-86</span>
+    <code>publishEvent()</code> đọc <code>event_type</code> từ row outbox, lookup producer tương ứng từ <code>map[string]KafkaProducer</code>. Nếu không tìm thấy producer → mark <code>failed</code> ngay, không publish nhầm topic. Publish qua <code>CircuitBreakerProducer</code>, retry tối đa 3 lần trước khi mark <code>failed</code>.
+    <span class="file">internal/worker/outbox.go, internal/app/kafka.go</span>
   </div></div>
   <div class="step"><span class="n"></span><div>
-    5 <code>ConsumerGroup</code> (mỗi group 3 consumer) lắng nghe các topic và gọi handler tương ứng: payment → inventory → order confirm/cancel, song song với notification email.
-    <span class="file">internal/app/kafka.go:65-157</span>
+    8 <code>ConsumerGroup</code> (mỗi group 3 consumer) lắng nghe các topic. Mỗi consumer wrap handler bằng <code>handleWithRetry</code>: thử lại tối đa 3 lần với exponential backoff (100ms → 200ms → 400ms). Sau 3 lần fail → <code>sendToDLQ</code> với header <code>source_topic</code> để biết message đến từ topic nào.
+    <span class="file">internal/kafka/consumer.go, internal/app/kafka.go</span>
+  </div></div>
+  <div class="step"><span class="n"></span><div>
+    Saga compensating transaction: nếu <code>InventoryService</code> fail (partial stock deduct), restore lại các item đã trừ, publish <code>inventory.failed</code> → <code>OrderService</code> cancel order, <code>PaymentService</code> publish <code>payment.refund</code>.
+    <span class="file">internal/service/invetory.go, internal/service/order.go, internal/service/payment.go</span>
   </div></div>
 </div>
 
-<h2>Điểm đáng chú ý trong code hiện tại</h2>
-<div class="callout">
-  <span class="tag">Outbox producer hard-bound vào 1 topic</span>
-  Cả <code>OutboxWorker</code> lẫn <code>OrderService</code> đều dùng chung <code>producers.CB</code> —
-  producer này được tạo cố định cho topic <code>order.created</code>
-  (<code>internal/app/kafka.go</code> hàm <code>setupProducers</code>).
-  Nghĩa là dù row trong bảng <code>outbox</code> có cột <code>event_type</code> lưu đúng loại event,
-  worker vẫn luôn publish vật lý lên <code>order.created</code>. Hiện tại không sao vì chỉ
-  <code>order.created</code> đi qua outbox — nhưng nếu sau này thêm event type khác vào outbox
-  (ví dụ <code>payment.refund</code> qua outbox thay vì publish trực tiếp), event sẽ bị gửi nhầm topic.
-  Đáng để tự hỏi: outbox worker nên đọc <code>event_type</code> từ row rồi chọn producer tương ứng,
-  thay vì nhận 1 producer cố định lúc khởi tạo.
+<h2>Trạng thái hiện tại</h2>
+<div class="callout ok">
+  <span class="tag">✓ Fixed — Outbox producer routing by event_type</span>
+  <code>OutboxWorker</code> nhận <code>map[string]KafkaProducer</code> keyed by topic name.
+  <code>publishEvent()</code> lookup producer theo <code>event.EventType</code> — nếu không tìm thấy
+  thì mark <code>failed</code> thay vì publish nhầm topic. Dễ thêm event type mới vào outbox
+  mà không cần sửa worker.
 </div>
-<div class="callout" style="margin-top:12px">
-  <span class="tag">Không có DLQ / retry ở tầng consumer</span>
-  <code>Consumer.Consume</code> chỉ log lỗi rồi tiếp tục đọc message kế tiếp khi handler fail
-  (<code>internal/kafka/consumer.go</code>) — message lỗi bị bỏ qua vĩnh viễn, không có dead-letter
-  topic hay cơ chế retry riêng ở tầng này (khác với outbox, vốn có retry x3 + trạng thái <code>failed</code>
-  để truy vết).
+<div class="callout ok" style="margin-top:12px">
+  <span class="tag">✓ Fixed — Consumer retry x3 + DLQ</span>
+  <code>Consumer.handleWithRetry</code> thử lại tối đa 3 lần với exponential backoff.
+  Sau 3 lần fail → <code>sendToDLQ</code> publish message gốc sang <code>dead-letter-queue</code>
+  kèm header <code>source_topic</code> để ops team biết message đến từ topic nào khi cần replay.
+</div>
+<div class="callout ok" style="margin-top:12px">
+  <span class="tag">✓ Fixed — payment.refund consumer</span>
+  <code>refund-service</code> consumer đã được wire cho topic <code>payment.refund</code>.
+  <code>PaymentService.HandleRefund</code> xử lý event — hiện tại log simulate,
+  sẵn sàng tích hợp Stripe/payment gateway khi cần.
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>

@@ -47,3 +47,10 @@ func (s *PaymentService) HandleInventoryFailed(ctx context.Context, event kafka.
 	payload, _ := json.Marshal(refundEvent)
 	return s.refundProducer.Publish(ctx, []byte(event.OrderID), payload)
 }
+
+func (s *PaymentService) HandleRefund(ctx context.Context, event kafka.PaymentRefundEvent) error {
+	slog.Info("payment: processing refund", "order_id", event.OrderID, "amount", event.TotalAmount)
+	// TODO: gọi Stripe/payment gateway khi tích hợp thật
+	slog.Info("payment: refund completed", "order_id", event.OrderID)
+	return nil
+}
