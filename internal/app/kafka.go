@@ -70,10 +70,16 @@ func setupConsumers(
 	inventorySvc *service.InventoryService,
 	idempotencyCache *cache.IdempotencyCache,
 	notificationSvc *service.NotificationService,
-) *Consumers {
+) (*Consumers, error) {
 	c := &Consumers{}
 
-	c.payment = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicOrderCreated, "payment-service", 3)
+	dlqProducer, err := kafka.NewProducer(cfg.Kafka.Broker, "dead-letter-queue")
+
+	if err != nil {
+		return nil, err
+	}
+
+	c.payment = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicOrderCreated, "payment-service", 3, dlqProducer)
 	c.payment.Consume(ctx, func(key, value []byte) error {
 		var event kafka.OrderCreatedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -82,7 +88,7 @@ func setupConsumers(
 		return paymentSvc.HandleOrderCreated(ctx, event)
 	})
 
-	c.inventoryFailedPayment = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryFailed, "payment-service-refund", 3)
+	c.inventoryFailedPayment = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryFailed, "payment-service-refund", 3, dlqProducer)
 	c.inventoryFailedPayment.Consume(ctx, func(key, value []byte) error {
 		var event kafka.InventoryFailedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -91,7 +97,7 @@ func setupConsumers(
 		return paymentSvc.HandleInventoryFailed(ctx, event)
 	})
 
-	c.inventory = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "inventory-service", 3)
+	c.inventory = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "inventory-service", 3, dlqProducer)
 	c.inventory.Consume(ctx, func(key, value []byte) error {
 		var event kafka.PaymentCompletedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -100,7 +106,7 @@ func setupConsumers(
 		return inventorySvc.HandlePaymentCompleted(ctx, event)
 	})
 
-	c.inventoryEvent = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryReserved, "order-service-inventory", 3)
+	c.inventoryEvent = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryReserved, "order-service-inventory", 3, dlqProducer)
 	c.inventoryEvent.Consume(ctx, func(key, value []byte) error {
 		var event kafka.InventoryReservedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -109,7 +115,7 @@ func setupConsumers(
 		return orderSvc.HandleInventoryReserved(ctx, event)
 	})
 
-	c.inventoryFailed = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryFailed, "order-service-inventory-failed", 3)
+	c.inventoryFailed = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicInventoryFailed, "order-service-inventory-failed", 3, dlqProducer)
 	c.inventoryFailed.Consume(ctx, func(key, value []byte) error {
 		var event kafka.InventoryFailedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -118,7 +124,7 @@ func setupConsumers(
 		return orderSvc.HandleInventoryFailed(ctx, event)
 	})
 
-	c.orderEvent = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "order-service-payment", 3)
+	c.orderEvent = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentCompleted, "order-service-payment", 3, dlqProducer)
 	c.orderEvent.Consume(ctx, func(key, value []byte) error {
 		var event kafka.PaymentCompletedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -144,7 +150,7 @@ func setupConsumers(
 		return nil
 	})
 
-	c.paymentFailed = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentFailed, "order-service-payment-failed", 3)
+	c.paymentFailed = kafka.NewConsumerGroup(cfg.Kafka.Broker, kafka.TopicPaymentFailed, "order-service-payment-failed", 3, dlqProducer)
 	c.paymentFailed.Consume(ctx, func(key, value []byte) error {
 		var event kafka.PaymentFailedEvent
 		if err := json.Unmarshal(value, &event); err != nil {
@@ -153,7 +159,7 @@ func setupConsumers(
 		return orderSvc.HandlePaymentFailed(ctx, event)
 	})
 
-	return c
+	return c, nil
 }
 
 func (c *Consumers) Close() {

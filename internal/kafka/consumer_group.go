@@ -10,10 +10,10 @@ type ConsumerGroup struct {
 	wg       sync.WaitGroup
 }
 
-func NewConsumerGroup(brokerAddress, topic, groupID string, size int) *ConsumerGroup {
+func NewConsumerGroup(brokerAddress, topic, groupID string, size int, dlqProducer KafkaProducer) *ConsumerGroup {
 	consumers := make([]*Consumer, size)
 	for i := 0; i < size; i++ {
-		consumers[i] = NewConsumer(brokerAddress, topic, groupID)
+		consumers[i] = NewConsumer(brokerAddress, topic, groupID, dlqProducer)
 	}
 	return &ConsumerGroup{
 		consumer: consumers,

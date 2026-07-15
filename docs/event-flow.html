@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Event-Driven Flow — ecommerce-api</title>
+<style>
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --ink: #1c1d1a;
+    --ink-dim: #5b5c54;
+    --line: #ddd9cd;
+    --pg: #2f6f4f;      /* postgres / outbox */
+    --kafka: #b5651d;   /* kafka topics */
+    --svc: #35507a;     /* services / consumers */
+    --warn-bg: #fbeee0;
+    --warn-line: #c98a3e;
+    --code-bg: #eeece3;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181a;
+      --surface: #1f2123;
+      --ink: #e9e8e2;
+      --ink-dim: #a3a299;
+      --line: #34363a;
+      --pg: #5fae82;
+      --kafka: #d99150;
+      --svc: #7ea3d8;
+      --warn-bg: #2a2418;
+      --warn-line: #8a6229;
+      --code-bg: #26282b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --surface: #1f2123; --ink: #e9e8e2; --ink-dim: #a3a299;
+    --line: #34363a; --pg: #5fae82; --kafka: #d99150; --svc: #7ea3d8;
+    --warn-bg: #2a2418; --warn-line: #8a6229; --code-bg: #26282b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f5f1; --surface: #ffffff; --ink: #1c1d1a; --ink-dim: #5b5c54;
+    --line: #ddd9cd; --pg: #2f6f4f; --kafka: #b5651d; --svc: #35507a;
+    --warn-bg: #fbeee0; --warn-line: #c98a3e; --code-bg: #eeece3;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    line-height: 1.55;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--svc);
+  }
+  h1 {
+    font-size: 28px;
+    margin: 6px 0 4px;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .sub {
+    color: var(--ink-dim);
+    font-size: 15px;
+    margin: 0 0 32px;
+    max-width: 62ch;
+  }
+
+  h2 {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+    margin: 40px 0 16px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-bottom: 20px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+  .diagram pre.mermaid {
+    margin: 0;
+    min-width: 760px;
+  }
+
+  .steps {
+    display: grid;
+    gap: 10px;
+    counter-reset: step;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .step .n {
+    counter-increment: step;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .step .n::before { content: counter(step); }
+  .step code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .step .file {
+    display: block;
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+  }
+
+  .callout {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-left: 3px solid var(--warn-line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-size: 14px;
+  }
+  .callout .tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--warn-line);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  :root[data-theme="dark"] .callout code,
+  @media (prefers-color-scheme: dark) { .callout code { background: rgba(255,255,255,0.08); } }
+</style>
+</head>
+<body>
+
+<p class="eyebrow">ecommerce-api · internal/worker, internal/kafka, internal/service</p>
+<h1>Event-driven flow: Order Created</h1>
+<p class="sub">
+  Full path từ <code style="font-family:var(--font-mono)">POST /v1/orders</code> qua outbox pattern,
+  Kafka producer/consumer, đến khi order được confirm hoặc cancel. Vẽ từ code thực tế trong repo,
+  không phải sơ đồ lý thuyết.
+</p>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--pg)"></i>Postgres / Outbox</span>
+  <span><i class="dot" style="background:var(--kafka)"></i>Kafka topic</span>
+  <span><i class="dot" style="background:var(--svc)"></i>Service / Consumer</span>
+</div>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    A["HTTP POST /v1/orders"]:::svc --> B["OrderService.CreateOrder"]:::svc
+    B --> C["DB TRANSACTION"]:::pg
+    C --> C1["insert order + order_items"]:::pg
+    C --> C2["deduct stock"]:::pg
+    C --> C3["insert outbox row\nevent_type=order.created, status=pending"]:::pg
+    C1 --> D["COMMIT"]:::pg
+    C2 --> D
+    C3 --> D
+    D --> E["Postgres trigger\npg_notify(outbox_channel)"]:::pg
+    E --> F["OutboxWorker.runOnce\nLISTEN outbox_channel"]:::svc
+    F --> G{"Redis lock\nlock:outbox, TTL 30s"}:::svc
+    G -- "busy → skip" --> F
+    G -- "acquired" --> H["fetch ≤10 pending rows\nfan out to 5 goroutines"]:::pg
+    H --> I["publishEvent()\nretry x3, linear backoff"]:::svc
+    I --> J["CircuitBreakerProducer\n(gobreaker, trips @5 fails)"]:::svc
+    J --> K(["order.created"]):::kafka
+    I -- "3 fails" --> M["MarkOutboxEventFailed"]:::pg
+    I -- "ok" --> L["MarkOutboxEventProcessed"]:::pg
+
+    K --> N["payment-service\nHandleOrderCreated"]:::svc
+    N --> O(["payment.completed"]):::kafka
+
+    O --> P["inventory-service\nHandlePaymentCompleted"]:::svc
+    P -- "stock ok" --> Q(["inventory.reserved"]):::kafka
+    P -- "stock fail\n(restore stock)" --> R(["inventory.failed"]):::kafka
+
+    O --> S["order-service-payment\nidempotency check"]:::svc
+    S --> T["NotificationService\nSendOrderConfirmation (SMTP)"]:::svc
+
+    Q --> U["order-service-inventory\nconfirm order"]:::svc
+    R --> V["order-service-inventory-failed\ncancel order"]:::svc
+    R --> W["payment-service-refund\npublish payment.refund"]:::svc
+    W --> X(["payment.refund"]):::kafka
+
+    X -.-> Y["(no consumer wired\nfor payment.refund yet)"]:::warn
+    Z(["payment.failed"]):::kafka -.-> ZZ["order-service-payment-failed\ncancel order"]:::svc
+
+    classDef pg fill:#eaf3ee,stroke:#2f6f4f,color:#1c1d1a,stroke-width:1px;
+    classDef kafka fill:#fbeee0,stroke:#b5651d,color:#1c1d1a,stroke-width:1px;
+    classDef svc fill:#e9eef7,stroke:#35507a,color:#1c1d1a,stroke-width:1px;
+    classDef warn fill:#fbeee0,stroke:#c0392b,color:#1c1d1a,stroke-width:1px,stroke-dasharray: 4 3;
+</pre>
+</div>
+
+<h2>Đọc theo từng bước</h2>
+<div class="steps">
+  <div class="step"><span class="n"></span><div>
+    <code>OrderService.CreateOrder</code> tạo order + trừ stock + insert 1 row vào bảng <code>outbox</code>, tất cả trong cùng 1 transaction.
+    <span class="file">internal/service/order.go:91-286</span>
+  </div></div>
+  <div class="step"><span class="n"></span><div>
+    Trigger Postgres tự <code>pg_notify('outbox_channel', id)</code> ngay khi row outbox được insert — worker không cần polling liên tục.
+    <span class="file">migrations/000013_create_outbox_notify_trigger.up.sql</span>
+  </div></div>
+  <div class="step"><span class="n"></span><div>
+    <code>OutboxWorker</code> nhận notification, giành Redis lock <code>lock:outbox</code> (30s TTL) để đảm bảo chỉ 1 instance xử lý batch tại một thời điểm, rồi fan-out cho 5 goroutine.
+    <span class="file">internal/worker/outbox.go:35-117</span>
+  </div></div>
+  <div class="step"><span class="n"></span><div>
+    Publish qua <code>CircuitBreakerProducer</code> (gobreaker, trip sau 5 lần fail liên tiếp, timeout 30s), retry tối đa 3 lần trước khi mark <code>failed</code>.
+    <span class="file">internal/kafka/circuit_breaker.go, internal/worker/outbox.go:63-86</span>
+  </div></div>
+  <div class="step"><span class="n"></span><div>
+    5 <code>ConsumerGroup</code> (mỗi group 3 consumer) lắng nghe các topic và gọi handler tương ứng: payment → inventory → order confirm/cancel, song song với notification email.
+    <span class="file">internal/app/kafka.go:65-157</span>
+  </div></div>
+</div>
+
+<h2>Điểm đáng chú ý trong code hiện tại</h2>
+<div class="callout">
+  <span class="tag">Outbox producer hard-bound vào 1 topic</span>
+  Cả <code>OutboxWorker</code> lẫn <code>OrderService</code> đều dùng chung <code>producers.CB</code> —
+  producer này được tạo cố định cho topic <code>order.created</code>
+  (<code>internal/app/kafka.go</code> hàm <code>setupProducers</code>).
+  Nghĩa là dù row trong bảng <code>outbox</code> có cột <code>event_type</code> lưu đúng loại event,
+  worker vẫn luôn publish vật lý lên <code>order.created</code>. Hiện tại không sao vì chỉ
+  <code>order.created</code> đi qua outbox — nhưng nếu sau này thêm event type khác vào outbox
+  (ví dụ <code>payment.refund</code> qua outbox thay vì publish trực tiếp), event sẽ bị gửi nhầm topic.
+  Đáng để tự hỏi: outbox worker nên đọc <code>event_type</code> từ row rồi chọn producer tương ứng,
+  thay vì nhận 1 producer cố định lúc khởi tạo.
+</div>
+<div class="callout" style="margin-top:12px">
+  <span class="tag">Không có DLQ / retry ở tầng consumer</span>
+  <code>Consumer.Consume</code> chỉ log lỗi rồi tiếp tục đọc message kế tiếp khi handler fail
+  (<code>internal/kafka/consumer.go</code>) — message lỗi bị bỏ qua vĩnh viễn, không có dead-letter
+  topic hay cơ chế retry riêng ở tầng này (khác với outbox, vốn có retry x3 + trạng thái <code>failed</code>
+  để truy vết).
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "neutral" });
+</script>
+</body>
+</html>

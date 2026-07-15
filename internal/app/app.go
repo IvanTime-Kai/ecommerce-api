@@ -102,7 +102,11 @@ func New(cfg *config.Config) (*App, error) {
 	outboxWorker.Start(ctx)
 
 	// Consumers
-	consumers := setupConsumers(ctx, cfg, paymentService, orderService, inventoryService, idempotencyCache, notificationService)
+	consumers, err := setupConsumers(ctx, cfg, paymentService, orderService, inventoryService, idempotencyCache, notificationService)
+
+	if err != nil {
+		return nil, err
+	}
 
 	// Handlers
 	esClient := search.NewClient(cfg.Elasticsearch.URL)
