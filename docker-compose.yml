@@ -55,6 +55,16 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+  redis2:
+    image: redis:7-alpine
+    container_name: redis2
+    ports:
+      - "6380:6379"
+  redis3:
+    image: redis:7-alpine
+    container_name: redis3
+    ports:
+      - "6381:6379"
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0

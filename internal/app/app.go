@@ -70,7 +70,10 @@ func New(cfg *config.Config) (*App, error) {
 	// Cache
 	stockCache := cache.NewStockCache(redisClient)
 	productCache := cache.NewProductCache(redisClient)
-	lockCache := cache.NewLockCache(redisClient)
+
+	// lockCache := cache.NewLockCache(redisClient)
+	redlock := cache.NewRedLockClient(cfg.Redis.Urls)
+
 	idempotencyCache := cache.NewIdempotencyCache(redisClient, 24*time.Hour)
 	rateLimiter := middleware.NewRateLimiter(redisClient, 5, time.Minute)
 
@@ -96,9 +99,10 @@ func New(cfg *config.Config) (*App, error) {
 	notificationService := service.NewNotificationService(&cfg.SMTP)
 
 	// Outbox worker
-	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, map[string]kafka.KafkaProducer{
+	outboxProducers := map[string]kafka.KafkaProducer{
 		kafka.TopicOrderCreated: producers.CB,
-	}, lockCache)
+	}
+	outboxWorker := worker.NewOutboxWorker(cfg.DB.Url, q, outboxProducers, redlock)
 	outboxWorker.Start(ctx)
 
 	// Consumers

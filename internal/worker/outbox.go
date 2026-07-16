@@ -17,17 +17,20 @@ type OutboxWorker struct {
 	dbURL      string
 	repository repository.Querier
 	producers  map[string]kafka.KafkaProducer
-	lockCache  *cache.LockCache
+	// lockCache  *cache.LockCache
+
+	// RedLock
+	redlock    *cache.RedLockClient
 	instanceID string
 	wg         sync.WaitGroup
 }
 
-func NewOutboxWorker(dbURL string, repository repository.Querier, producers map[string]kafka.KafkaProducer, lockCache *cache.LockCache) *OutboxWorker {
+func NewOutboxWorker(dbURL string, repository repository.Querier, producers map[string]kafka.KafkaProducer, redlock *cache.RedLockClient) *OutboxWorker {
 	return &OutboxWorker{
 		dbURL:      dbURL,
 		repository: repository,
 		producers:  producers,
-		lockCache:  lockCache,
+		redlock:    redlock,
 		instanceID: uuid.NewString(),
 	}
 }
@@ -105,9 +108,9 @@ func (w *OutboxWorker) runOnce(ctx context.Context) error {
 		return err
 	}
 
-	if w.lockCache.AcquireLock(ctx, "lock:outbox", w.instanceID, 30*time.Second) {
+	if mutex, ok := w.redlock.AcquireLock(ctx, "lock:outbox", 30*time.Second); ok {
 		w.process(ctx)
-		w.lockCache.ReleaseLock(ctx, "lock:outbox", w.instanceID)
+		w.redlock.ReleaseLock(ctx, mutex)
 	}
 
 	for {
@@ -116,9 +119,9 @@ func (w *OutboxWorker) runOnce(ctx context.Context) error {
 			return nil
 		}
 
-		if w.lockCache.AcquireLock(ctx, "lock:outbox", w.instanceID, 30*time.Second) {
+		if mutex, ok := w.redlock.AcquireLock(ctx, "lock:outbox", 30*time.Second); ok {
 			w.process(ctx)
-			w.lockCache.ReleaseLock(ctx, "lock:outbox", w.instanceID)
+			w.redlock.ReleaseLock(ctx, mutex)
 		}
 	}
 }

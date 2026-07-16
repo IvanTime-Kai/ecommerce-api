@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -13,7 +14,8 @@ type DBConfig struct {
 }
 
 type RedisConfig struct {
-	Url string
+	Url  string
+	Urls []string
 }
 
 type ServerConfig struct {
@@ -81,7 +83,8 @@ func LoadConfig() (*Config, error) {
 			ReplicaUrl: os.Getenv("DB_REPLICA_URL"),
 		},
 		Redis: RedisConfig{
-			Url: os.Getenv("REDIS_URL"),
+			Url:  os.Getenv("REDIS_URL"),
+			Urls: strings.Split(os.Getenv("REDIS_URLS"), ","),
 		},
 		Server: ServerConfig{
 			Port:           os.Getenv("SERVER_PORT"),
